@@ -6,12 +6,17 @@ import PlayerRegistration from './components/PlayerRegistration';
 import EditProfileForm from './components/EditProfileForm';
 import { GameProposal, Player, Availability, Notification, Location } from './types';
 import Header from './components/Header';
-import { checkAvailabilityMatch, createGameMatchNotification } from './utils/notificationUtils';
+import { 
+  checkAvailabilityMatch, 
+  createGameMatchNotification, 
+  checkAvailabilitiesMatch, 
+  createAvailabilityMatchNotification,
+  checkLocationsProximity,
+  normalizeCategory // Add this import
+} from './utils/notificationUtils';
 import AdminPanel from './components/admin/AdminPanel';
 import { supabase } from './lib/supabase';
-import { v4 as uuidv4 } from 'uuid';  // Add this import at the top
-
-
+import { v4 as uuidv4 } from 'uuid';
 function App() {
   const { user, signOut, signIn, setUser, updateProfile } = useAuth();  // Add updateProfile here
   const [games, setGames] = useState<GameProposal[]>([]);
@@ -22,6 +27,21 @@ function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+  // Add this helper function at the top with other imports
+const timeOverlap = (start1: string, end1: string, start2: string, end2: string): boolean => {
+  const [h1, m1] = start1.split(':').map(Number);
+  const [h2, m2] = end1.split(':').map(Number);
+  const [h3, m3] = start2.split(':').map(Number);
+  const [h4, m4] = end2.split(':').map(Number);
+  
+  const start1Mins = h1 * 60 + m1;
+  const end1Mins = h2 * 60 + m2;
+  const start2Mins = h3 * 60 + m3;
+  const end2Mins = h4 * 60 + m4;
+  
+  return (start1Mins <= end2Mins) && (end1Mins >= start2Mins);
+};
 
   const handleLogin = async (data: { email: string; password: string }) => {
     try {
@@ -395,63 +415,210 @@ function App() {
   };
 
   const handleAddAvailability = async (data: Partial<Availability>) => {
-    if (user?.blocked) {
-      alert('Sua conta está bloqueada. Você não pode registrar disponibilidades.');
-      return;
-    }
+  if (user?.blocked) {
+    alert('Sua conta está bloqueada. Você não pode registrar disponibilidades.');
+    return;
+  }
 
-    const days = data.duration === '7days' ? 7 : 14;
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + days);
+  const days = data.duration === '7days' ? 7 : 14;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + days);
 
-    try {
-      // 1. First create the availability
-      const { data: createdAvailability, error: availError } = await supabase
-        .from('availabilities')
-        .insert({
-          player_id: data.player!.id,
-          sports: data.sports,
-          locations: data.locations,
-          notes: data.notes,
-          duration: data.duration,
-          expires_at: expiresAt.toISOString(),
-          status: 'active'
+  try {
+    // 1. First create the availability
+    const { data: createdAvailability, error: availError } = await supabase
+      .from('availabilities')
+      .insert({
+        player_id: data.player!.id,
+        sports: data.sports,
+        locations: data.locations,
+        notes: data.notes,
+        duration: data.duration,
+        expires_at: expiresAt.toISOString(),
+        status: 'active'
+      })
+      .select()
+      .single();
+
+    if (availError) throw availError;
+
+    // 2. Then create the time slots
+    const timeSlotData = data.timeSlots!.map(slot => ({
+      availability_id: createdAvailability.id,
+      day: slot.day,
+      start_time: slot.startTime,
+      end_time: slot.endTime
+    }));
+
+    const { error: slotsError } = await supabase
+      .from('availability_time_slots')
+      .insert(timeSlotData);
+
+    if (slotsError) throw slotsError;
+
+    // Update local state with the new availability
+    const newAvailability: Availability = {
+      ...createdAvailability,
+      player: data.player!,
+      timeSlots: data.timeSlots!,
+      createdAt: createdAvailability.created_at,
+      expiresAt: createdAvailability.expires_at
+    };
+
+    // Find matching availabilities with detailed logging
+    const matchingAvailabilities = availabilities.filter(existingAvailability => {
+      console.log('Checking availability for:', {
+        existingPlayer: existingAvailability.player.name,
+        newPlayer: data.player!.name
+      });
+
+      // Basic validation checks with logging
+      const isActive = existingAvailability.status === 'active';
+      const isNotDeleted = !existingAvailability.deletedAt;
+      const isDifferentPlayer = existingAvailability.player.id !== data.player!.id;
+      const isNotExpired = new Date(existingAvailability.expiresAt) > new Date();
+
+      console.log('Basic checks:', {
+        isActive,
+        isNotDeleted,
+        isDifferentPlayer,
+        isNotExpired
+      });
+
+      if (!isActive || !isNotDeleted || !isDifferentPlayer || !isNotExpired) {
+        return false;
+      }
+
+      // Gender check with logging
+      const isSameGender = existingAvailability.player.gender === data.player!.gender;
+      console.log('Gender check:', {
+        playerGender: data.player!.gender,
+        otherGender: existingAvailability.player.gender,
+        isSameGender
+      });
+
+      if (!isSameGender) {
+        return false;
+      }
+
+      // Category check with logging
+      const playerCategory = data.player!.padelCategory?.replace(/\D/g, '');
+      const otherCategory = existingAvailability.player.padelCategory?.replace(/\D/g, '');
+      const isSameCategory = playerCategory === otherCategory;
+
+      console.log('Category check:', {
+        playerCategory,
+        otherCategory,
+        isSameCategory,
+        rawPlayerCategory: data.player!.padelCategory,
+        rawOtherCategory: existingAvailability.player.padelCategory
+      });
+
+      if (!isSameCategory) {
+        return false;
+      }
+
+      // Location check with logging
+      const hasMatchingLocation = existingAvailability.locations.some(loc => 
+        newAvailability.locations.includes(loc)
+      );
+
+      console.log('Location check:', {
+        playerLocations: newAvailability.locations,
+        otherLocations: existingAvailability.locations,
+        hasMatchingLocation
+      });
+
+      if (!hasMatchingLocation) {
+        return false;
+      }
+
+      // Time slots check with logging
+      const matchingTimeSlots = newAvailability.timeSlots.filter(slot1 =>
+        existingAvailability.timeSlots.some(slot2 => {
+          const sameDay = slot1.day === slot2.day;
+          const hasTimeOverlap = timeOverlap(
+            slot1.startTime,
+            slot1.endTime,
+            slot2.startTime,
+            slot2.endTime
+          );
+
+          console.log('Time slot comparison:', {
+            day1: slot1.day,
+            day2: slot2.day,
+            sameDay,
+            time1: `${slot1.startTime}-${slot1.endTime}`,
+            time2: `${slot2.startTime}-${slot2.endTime}`,
+            hasTimeOverlap
+          });
+
+          return sameDay && hasTimeOverlap;
         })
-        .select()
-        .single();
-  
-      if (availError) throw availError;
-  
-      // 2. Then create the time slots
-      const timeSlotData = data.timeSlots!.map(slot => ({
-        availability_id: createdAvailability.id,
-        day: slot.day,
-        start_time: slot.startTime,
-        end_time: slot.endTime
-      }));
-  
-      const { error: slotsError } = await supabase
-        .from('availability_time_slots')
-        .insert(timeSlotData);
-  
-      if (slotsError) throw slotsError;
-  
-      // Update local state with the new availability
-      const newAvailability: Availability = {
-        ...createdAvailability,
-        player: data.player!,
-        timeSlots: data.timeSlots!,
-        createdAt: createdAvailability.created_at,
-        expiresAt: createdAvailability.expires_at
-      };
-  
-      setAvailabilities(prev => [...prev, newAvailability]);
-    } catch (error) {
-      console.error('Error creating availability:', error);
-      alert('Erro ao criar disponibilidade. Tente novamente.');
-    }
-  };
+      );
 
+      const hasMatchingTimeSlot = matchingTimeSlots.length > 0;
+      console.log('Time slots check:', {
+        hasMatchingTimeSlot,
+        matchingTimeSlots
+      });
+
+      return hasMatchingTimeSlot;
+    });
+
+    console.log('Matching availabilities found:', matchingAvailabilities.length);
+
+    // Create notifications for matches
+    if (locations && matchingAvailabilities.length > 0) {
+      matchingAvailabilities.forEach(matchingAvailability => {
+        const userLocationName = locations
+          .find(l => l.id === newAvailability.locations[0])?.name || '';
+        const otherLocationName = locations
+          .find(l => l.id === matchingAvailability.locations[0])?.name || '';
+
+        console.log('Creating notifications for match:', {
+          player1: data.player!.name,
+          player2: matchingAvailability.player.name,
+          location1: userLocationName,
+          location2: otherLocationName
+        });
+
+        const notification1 = createAvailabilityMatchNotification(
+          matchingAvailability,
+          data.player!.id,
+          { 
+            isMatch: true,
+            nearbyLocations: [matchingAvailability.locations[0]],
+            distance: 0
+          },
+          locations,
+          userLocationName,
+          otherLocationName
+        );
+
+        const notification2 = createAvailabilityMatchNotification(
+          newAvailability,
+          matchingAvailability.player.id,
+          { 
+            isMatch: true,
+            nearbyLocations: [newAvailability.locations[0]],
+            distance: 0
+          },
+          locations,
+          otherLocationName,
+          userLocationName
+        );
+        
+        setNotifications(prev => [...prev, notification1, notification2]);
+      });
+    }
+
+    setAvailabilities(prev => [...prev, newAvailability]);
+  } catch (error) {
+    console.error('Error creating availability:', error);
+    alert('Erro ao criar disponibilidade. Tente novamente.');
+  }
+};
   const handleEditAvailability = async (availabilityId: string, data: Partial<Availability>) => {
     try {
       // 1. Update the main availability record

@@ -17,14 +17,14 @@ export default function NotificationList({
   onClose,
 }: NotificationListProps) {
   return (
-    <div className="max-h-[80vh] overflow-y-auto">
-      <div className="p-4 border-b flex justify-between items-center">
+    <div className="max-h-[90vh] md:max-h-[80vh] w-screen md:w-auto overflow-y-auto bg-white rounded-t-lg md:rounded-lg shadow-lg">
+      <div className="sticky top-0 z-10 p-4 border-b bg-white flex justify-between items-center">
         <h3 className="text-lg font-semibold">Notificações</h3>
         <div className="flex items-center gap-2">
           {notifications.length > 0 && (
             <button
               onClick={onClearAll}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 p-2"
               title="Limpar todas"
             >
               <Trash2 className="w-4 h-4" />
@@ -32,7 +32,7 @@ export default function NotificationList({
           )}
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 p-2"
           >
             <X className="w-5 h-5" />
           </button>
@@ -44,7 +44,7 @@ export default function NotificationList({
           Nenhuma notificação
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="divide-y max-w-screen md:max-w-md">
           {notifications.map((notification) => (
             <div
               key={notification.id}
@@ -53,13 +53,13 @@ export default function NotificationList({
               }`}
               onClick={() => onMarkAsRead(notification.id)}
             >
-              <div className="flex justify-between items-start">
-                <h4 className="font-medium text-gray-900">{notification.title}</h4>
-                <span className="text-xs text-gray-500">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1">
+                <h4 className="font-medium text-gray-900 text-sm md:text-base">{notification.title}</h4>
+                <span className="text-xs text-gray-500 whitespace-nowrap">
                   {formatRelativeTime(new Date(notification.createdAt))}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+              <p className="text-sm text-gray-600 mt-1 break-words">{notification.message}</p>
             </div>
           ))}
         </div>
