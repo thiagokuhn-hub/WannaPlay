@@ -15,6 +15,10 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
       'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY)
+    },
+    // Add this section
+    html: {
+      title: 'QueroJogar'
     }
   }
 });
