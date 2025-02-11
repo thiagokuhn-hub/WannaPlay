@@ -327,17 +327,22 @@ export default function CommunityBoard({
   const filteredGames = filterGames(games);
   const filteredAvailabilities = filterAvailabilities(availabilities);
 
-  // Add isLoading to the existing useState imports
-  const [isLoading, setIsLoading] = useState(true);
+
 
   // Add this useEffect after other state declarations
+  // Move isLoading state to the top with other state declarations
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
         // Wait for both games and locations to be loaded
-        if (games.length > 0 || locations.length > 0) {
-          setIsLoading(false);
+        if (games.length >= 0 && locations.length >= 0) {
+          // Add a small delay to ensure smooth transition
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 1000);
         }
       } catch (error) {
         console.error('Error loading data:', error);
