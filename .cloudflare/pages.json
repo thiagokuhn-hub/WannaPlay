@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "nodeVersion": "18.18.0",
+  "routes": [
+    {
+      "pattern": "/**/*",
+      "serve": "/index.html",
+      "status": 200
+    }
+  ]
+}
