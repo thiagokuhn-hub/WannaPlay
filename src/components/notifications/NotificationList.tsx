@@ -8,6 +8,7 @@ interface NotificationListProps {
   onMarkAsRead: (notificationId: string) => void;
   onClearAll: () => void;
   onClose: () => void;
+  onNotificationClick?: (notification: Notification) => void; // Add this new prop
 }
 
 export default function NotificationList({
@@ -15,7 +16,13 @@ export default function NotificationList({
   onMarkAsRead,
   onClearAll,
   onClose,
+  onNotificationClick,
 }: NotificationListProps) {
+  const handleNotificationClick = (notification: Notification) => {
+    onMarkAsRead(notification.id);
+    onNotificationClick?.(notification);
+  };
+
   return (
     <div className="fixed inset-x-0 bottom-0 md:relative md:inset-auto max-h-[80vh] w-screen md:w-auto overflow-y-auto bg-white rounded-t-lg md:rounded-lg shadow-lg">
       <div className="sticky top-0 z-10 p-4 border-b bg-white flex justify-between items-center">
@@ -51,7 +58,7 @@ export default function NotificationList({
               className={`p-4 hover:bg-gray-50 cursor-pointer ${
                 !notification.read ? 'bg-blue-50' : ''
               }`}
-              onClick={() => onMarkAsRead(notification.id)}
+              onClick={() => handleNotificationClick(notification)}
             >
               <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1">
                 <h4 className="font-medium text-gray-900 text-sm md:text-base">{notification.title}</h4>
