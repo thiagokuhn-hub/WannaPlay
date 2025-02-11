@@ -17,7 +17,7 @@ export default function NotificationList({
   onClose,
 }: NotificationListProps) {
   return (
-    <div className="max-h-[90vh] md:max-h-[80vh] w-screen md:w-auto overflow-y-auto bg-white rounded-t-lg md:rounded-lg shadow-lg">
+    <div className="fixed inset-x-0 bottom-0 md:relative md:inset-auto max-h-[80vh] w-screen md:w-auto overflow-y-auto bg-white rounded-t-lg md:rounded-lg shadow-lg">
       <div className="sticky top-0 z-10 p-4 border-b bg-white flex justify-between items-center">
         <h3 className="text-lg font-semibold">Notificações</h3>
         <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ export default function NotificationList({
           Nenhuma notificação
         </div>
       ) : (
-        <div className="divide-y max-w-screen md:max-w-md">
+        <div className="divide-y w-full md:max-w-md">
           {notifications.map((notification) => (
             <div
               key={notification.id}
