@@ -13,6 +13,7 @@ import JoinGameModal from './JoinGameModal';
 import RegistrationPrompt from './RegistrationPrompt';
 import { getDayFromDate } from '../utils/dateUtils';
 import { useGeolocation } from '../hooks/useGeolocation';
+import LoadingSkeleton from './LoadingSkeleton';
 
 interface CommunityBoardProps {
   games: GameProposal[];
@@ -326,6 +327,27 @@ export default function CommunityBoard({
   const filteredGames = filterGames(games);
   const filteredAvailabilities = filterAvailabilities(availabilities);
 
+  // Add isLoading to the existing useState imports
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Add this useEffect after other state declarations
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        // Wait for both games and locations to be loaded
+        if (games.length > 0 || locations.length > 0) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setIsLoading(false);
+      }
+    };
+  
+    loadData();
+  }, [games, locations]);
+
   return (
     <div className="space-y-4">
       <ActionButtons
@@ -356,43 +378,61 @@ export default function CommunityBoard({
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
         <div className="lg:col-span-9">
-          {filteredGames.length > 0 && (
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Jogos Disponíveis</h2>
+          {isLoading ? (
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+              <LoadingSkeleton />
+              <LoadingSkeleton />
+              <LoadingSkeleton />
+              <LoadingSkeleton />
+            </div>
+          ) : (
+            <>
+              {filteredGames.length > 0 && (
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Jogos Disponíveis</h2>
+              )}
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                {filteredGames.map((game) => (
+                  <GameCard
+                    key={game.id}
+                    game={game}
+                    currentUser={currentUser}
+                    onGameClick={() => setSelectedGame(game)}
+                    onJoinClick={handleJoinGameClick}
+                    onMarkComplete={handleMarkComplete}
+                    onAddPlayerDirectly={handleAddPlayerDirectly}
+                    locations={locations}  // Add this line
+                  />
+                ))}
+              </div>
+            </>
           )}
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-            {filteredGames.map((game) => (
-              <GameCard
-                key={game.id}
-                game={game}
-                currentUser={currentUser}
-                onGameClick={() => setSelectedGame(game)}
-                onJoinClick={handleJoinGameClick}
-                onMarkComplete={handleMarkComplete}
-                onAddPlayerDirectly={handleAddPlayerDirectly}
-                locations={locations}  // Add this line
-              />
-            ))}
-          </div>
         </div>
 
         <div className="lg:col-span-3">
           <div className="sticky top-4">
-            {filteredAvailabilities.length > 0 && (
-              <>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Quero Jogar</h3>
-                <div className="space-y-4">
-                  {filteredAvailabilities.map((availability) => (
-                    <AvailabilityCard
-                      key={availability.id}
-                      availability={availability}
-                      currentUserId={currentUser?.id}
-                      onEdit={handleEditAvailability}
-                      onDelete={handleDeleteAvailability}
-                      locations={locations}
-                    />
-                  ))}
-                </div>
-              </>
+            {isLoading ? (
+              <div className="space-y-4">
+                <LoadingSkeleton />
+                <LoadingSkeleton />
+              </div>
+            ) : (
+              filteredAvailabilities.length > 0 && (
+                <>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Quero Jogar</h3>
+                  <div className="space-y-4">
+                    {filteredAvailabilities.map((availability) => (
+                      <AvailabilityCard
+                        key={availability.id}
+                        availability={availability}
+                        currentUserId={currentUser?.id}
+                        onEdit={handleEditAvailability}
+                        onDelete={handleDeleteAvailability}
+                        locations={locations}
+                      />
+                    ))}
+                  </div>
+                </>
+              )
             )}
           </div>
         </div>
