@@ -17,11 +17,16 @@ export default function FilterPanel({ filters, onFilterChange, games, availabili
   const getAvailableOptions = () => {
     const options = {
       sports: new Set<Sport>(),
-      locations: new Set<string>(), // Change to string for location IDs
+      locations: new Set<string>(),
       categories: new Set<Category>(),
       days: new Set<WeekDay>(),
       genders: new Set<Gender | GameGender>(),
     };
+
+    // Make sure to include all locations from both games and filters
+    locations.forEach(location => {
+      options.locations.add(location.id);
+    });
 
     // Extrair de jogos
     games.forEach(game => {
@@ -45,6 +50,9 @@ export default function FilterPanel({ filters, onFilterChange, games, availabili
       availability.timeSlots.forEach(slot => options.days.add(slot.day));
       options.genders.add(availability.player.gender);
     });
+
+    // Also include any locations that are in the current filters
+    filters.locations.forEach(loc => options.locations.add(loc));
 
     return {
       sports: Array.from(options.sports),
