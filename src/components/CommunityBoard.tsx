@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Filter } from 'lucide-react';
 import { GameProposal, Player, Availability, Location, WeekDay, Gender, Sport, Filters } from '../types';
 import GameDetails from './GameDetails';
@@ -12,6 +12,7 @@ import GameCard from './GameCard';
 import JoinGameModal from './JoinGameModal';
 import RegistrationPrompt from './RegistrationPrompt';
 import { getDayFromDate } from '../utils/dateUtils';
+import { useGeolocation } from '../hooks/useGeolocation';
 
 interface CommunityBoardProps {
   games: GameProposal[];
@@ -47,7 +48,7 @@ export default function CommunityBoard({
   onRemovePlayer
 }: CommunityBoardProps) {
   console.log('CommunityBoard locations:', locations);  // Add this line here
-  
+  const { latitude, longitude, error } = useGeolocation();
   const [selectedGame, setSelectedGame] = useState<GameProposal | null>(null);
   const [showAvailabilityForm, setShowAvailabilityForm] = useState(false);
   const [editingAvailability, setEditingAvailability] = useState<Availability | null>(null);
@@ -178,6 +179,39 @@ export default function CommunityBoard({
     setShowAvailabilityForm(false);
   };
 
+  useEffect(() => {
+    if (latitude && longitude) {
+      const nearbyLocations = locations.filter(location => {
+        const distance = calculateDistance(
+          latitude,
+          longitude,
+          location.latitude,
+          location.longitude
+        );
+        return distance <= 10; // Show locations within 10km
+      });
+      
+      // Update filters to show nearby locations
+      setFilters(prev => ({
+        ...prev,
+        locations: nearbyLocations.map(loc => loc.id)
+      }));
+    }
+  }, [latitude, longitude, locations]);
+
+  // Add this helper function
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+
   const handleRemovePlayer = (gameId: string, playerId: string) => {
     if (window.confirm('Tem certeza que deseja remover este jogador?')) {
       onRemovePlayer(gameId, playerId);
@@ -196,61 +230,97 @@ export default function CommunityBoard({
 
   const filterGames = (games: GameProposal[]) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for proper comparison
+    today.setHours(0, 0, 0, 0);
 
-    return games.filter(game => {
-      if (game.status === 'deleted') return false;
-      
-      // Check if game date has passed
-      const gameDate = new Date(game.date);
-      gameDate.setHours(0, 0, 0, 0);
-      if (gameDate < today) return false;
-      
-      const locationMatch = filters.locations.length === 0 || 
-        game.locations.some(loc => filters.locations.includes(loc));
-      
-      const categoryMatch = filters.categories.length === 0 || 
-        game.requiredCategories.some(cat => filters.categories.includes(cat));
-      
-      const dayMatch = filters.days.length === 0 || 
-        filters.days.includes(getDayFromDate(new Date(game.date)));
-      
-      const genderMatch = filters.genders.length === 0 || 
-        filters.genders.includes(game.gender);
-      
-      const sportMatch = filters.sports.length === 0 || 
-        filters.sports.includes(game.sport);
+    const gamesWithDistance = games.map(game => {
+      const closestLocation = game.locations
+        .map(locId => locations.find(l => l.id === locId))
+        .filter(loc => loc !== undefined)
+        .map(loc => ({
+          location: loc!,
+          distance: latitude && longitude ? 
+            calculateDistance(latitude, longitude, loc!.latitude, loc!.longitude) : 
+            Infinity
+        }))
+        .sort((a, b) => a.distance - b.distance)[0];
 
-      return locationMatch && categoryMatch && dayMatch && genderMatch && sportMatch;
+      return {
+        ...game,
+        distance: closestLocation?.distance || Infinity
+      };
     });
+
+    return gamesWithDistance
+      .filter(game => {
+        if (game.status === 'deleted') return false;
+        
+        const gameDate = new Date(game.date);
+        gameDate.setHours(0, 0, 0, 0);
+        if (gameDate < today) return false;
+        
+        const locationMatch = filters.locations.length === 0 || 
+          game.locations.some(loc => filters.locations.includes(loc));
+        
+        const categoryMatch = filters.categories.length === 0 || 
+          game.requiredCategories.some(cat => filters.categories.includes(cat));
+        
+        const dayMatch = filters.days.length === 0 || 
+          filters.days.includes(getDayFromDate(new Date(game.date)));
+        
+        const genderMatch = filters.genders.length === 0 || 
+          filters.genders.includes(game.gender);
+        
+        const sportMatch = filters.sports.length === 0 || 
+          filters.sports.includes(game.sport);
+
+        return locationMatch && categoryMatch && dayMatch && genderMatch && sportMatch;
+      });
   };
 
   const filterAvailabilities = (availabilities: Availability[]) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for proper comparison
+    today.setHours(0, 0, 0, 0);
 
-    return availabilities.filter(availability => {
-      if (availability.status === 'deleted') return false;
-      
-      // Check if availability has expired
-      const expirationDate = new Date(availability.expiresAt);
-      expirationDate.setHours(0, 0, 0, 0);
-      if (expirationDate < today) return false;
-      
-      const locationMatch = filters.locations.length === 0 || 
-        availability.locations.some(loc => filters.locations.includes(loc));
-      
-      const dayMatch = filters.days.length === 0 || 
-        availability.timeSlots.some(slot => filters.days.includes(slot.day));
-      
-      const genderMatch = filters.genders.length === 0 || 
-        filters.genders.includes(availability.player.gender);
-      
-      const sportMatch = filters.sports.length === 0 || 
-        availability.sports.some(sport => filters.sports.includes(sport));
+    const availabilitiesWithDistance = availabilities.map(availability => {
+      const closestLocation = availability.locations
+        .map(locId => locations.find(l => l.id === locId))
+        .filter(loc => loc !== undefined)
+        .map(loc => ({
+          location: loc!,
+          distance: latitude && longitude ? 
+            calculateDistance(latitude, longitude, loc!.latitude, loc!.longitude) : 
+            Infinity
+        }))
+        .sort((a, b) => a.distance - b.distance)[0];
 
-      return locationMatch && dayMatch && genderMatch && sportMatch;
+      return {
+        ...availability,
+        distance: closestLocation?.distance || Infinity
+      };
     });
+
+    return availabilitiesWithDistance
+      .filter(availability => {
+        if (availability.status === 'deleted') return false;
+        
+        const expirationDate = new Date(availability.expiresAt);
+        expirationDate.setHours(0, 0, 0, 0);
+        if (expirationDate < today) return false;
+        
+        const locationMatch = filters.locations.length === 0 || 
+          availability.locations.some(loc => filters.locations.includes(loc));
+        
+        const dayMatch = filters.days.length === 0 || 
+          availability.timeSlots.some(slot => filters.days.includes(slot.day));
+        
+        const genderMatch = filters.genders.length === 0 || 
+          filters.genders.includes(availability.player.gender);
+        
+        const sportMatch = filters.sports.length === 0 || 
+          availability.sports.some(sport => filters.sports.includes(sport));
+
+        return locationMatch && dayMatch && genderMatch && sportMatch;
+      });
   };
 
   const filteredGames = filterGames(games);
