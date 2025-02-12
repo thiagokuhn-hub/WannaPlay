@@ -48,7 +48,7 @@ export default function CommunityBoard({
   onRegisterPrompt,
   onRemovePlayer
 }: CommunityBoardProps) {
-  console.log('CommunityBoard locations:', locations);  // Add this line here
+  //console.log('CommunityBoard locations:', locations);  // Add this line here
   const { latitude, longitude, error } = useGeolocation();
   const [selectedGame, setSelectedGame] = useState<GameProposal | null>(null);
   const [showAvailabilityForm, setShowAvailabilityForm] = useState(false);

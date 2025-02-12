@@ -38,7 +38,7 @@ export function useAuth() {
         .single()
 
       if (error) throw error
-      console.log('User data from database:', data) // Add this line to debug
+      // Remove debug log
       setUser({
         ...data,
         isAdmin: data.is_admin
@@ -92,8 +92,8 @@ export function useAuth() {
             phone: userData.phone || '',
             playing_side: userData.playingSide || 'both',
             gender: userData.gender || 'other',
-            padel_category: userData.padelCategory || 'beginner',
-            beach_tennis_category: userData.beachTennisCategory || 'beginner',
+            padel_category: userData.padelCategory || null,  // Changed from 'beginner' to null
+            beach_tennis_category: userData.beachTennisCategory || null,  // Changed from 'beginner' to null
             avatar: userData.avatar || null,
             cep: userData.cep || '',
             created_at: new Date().toISOString(),

@@ -120,15 +120,22 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
       return;
     }
     
-    // Check if at least one category is selected
-    if (!formData.padelCategory && !formData.beachTennisCategory) {
+    // Show category warning if no category is selected
+    if (!formData.padelCategory && !formData.beachTennisCategory && !showCategoryWarning) {
       setShowCategoryWarning(true);
       return;
     }
-
+    
+    // Create submission data without empty categories
+    const submissionData = {
+      ...formData,
+      beachTennisCategory: formData.beachTennisCategory || undefined,
+      padelCategory: formData.padelCategory || undefined
+    };
+    
     setLoading(true);
     try {
-      await signUp(formData);
+      await signUp(submissionData);
       setFormData(initialFormState);
       onClose();
     } catch (err) {
@@ -315,10 +322,13 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
             <select
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={formData.beachTennisCategory || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                beachTennisCategory: e.target.value ? e.target.value as BeachTennisCategory : undefined
-              })}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({
+                  ...formData,
+                  beachTennisCategory: value === '' ? undefined : value as BeachTennisCategory
+                });
+              }}
             >
               <option value="">Selecione a categoria (opcional)</option>
               {beachTennisCategories.map((category) => (
@@ -368,7 +378,35 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
           </div>
         </form>
       </Modal>
-      {/* ... warning modals ... */}
+      {/* Add the category warning modal */}
+      <Modal
+        isOpen={showCategoryWarning}
+        onClose={() => setShowCategoryWarning(false)}
+        title="Atenção"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Você não selecionou nenhuma categoria. Tem certeza que deseja continuar?
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowCategoryWarning(false)}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900"
+            >
+              Voltar
+            </button>
+            <button
+              onClick={() => {
+                setShowCategoryWarning(false);
+                handleSubmit({ preventDefault: () => {} } as React.FormEvent);
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

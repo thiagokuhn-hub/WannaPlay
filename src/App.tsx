@@ -145,6 +145,32 @@ const timeOverlap = (start1: string, end1: string, start2: string, end2: string)
       return;
     }
 
+    // Find the game
+    const game = games.find(g => g.id === gameId);
+    if (!game) {
+      alert('Jogo não encontrado.');
+      return;
+    }
+
+    // Check if player category matches game requirements
+    if (!player.isTemporary) {
+      const hasValidCategory = game.requiredCategories.some(category => {
+        if (game.sport === 'padel') {
+          return player.padel_category === category;
+        } else if (game.sport === 'beach-tennis') {
+          return player.beach_tennis_category === category;
+        }
+        return false;
+      });
+
+      if (!hasValidCategory) {
+        alert(`Categoria exigida para esse jogo de ${game.sport === 'padel' ? 'Padel' : 'Beach Tennis'} é diferente da sua!`);
+        return;
+      }
+    }
+
+
+
     try {
       // Check if the player is temporary
       if (player.isTemporary) {
