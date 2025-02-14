@@ -4,6 +4,7 @@ import { GiTennisBall } from 'react-icons/gi';
 import { Player, Notification } from '../types';
 import NotificationBell from './notifications/NotificationBell';
 import { useAuth } from '../hooks/useAuth';
+import { formatDisplayName } from '../utils/nameUtils';
 
 interface HeaderProps {
   user: Player | null;  // Add this back
@@ -39,14 +40,24 @@ export default function Header({
     <header className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          <div 
-            className="flex items-center gap-2 cursor-pointer hover:opacity-80"
-            onClick={handleLogoClick}
-          >
-            <GiTennisBall className="w-8 h-8 text-blue-600" />
-            <h1 className="text-xl font-bold text-gray-900">
-              QueroJogar
-            </h1>
+          <div className="flex items-center gap-4">
+            <div 
+              className="flex items-center gap-2 cursor-pointer hover:opacity-80"
+              onClick={handleLogoClick}
+            >
+              <GiTennisBall className="w-8 h-8 text-blue-600" />
+              <h1 className="text-xl font-bold text-gray-900">
+                QueroJogar
+              </h1>
+            </div>
+            {user?.is_admin && (
+              <button
+                onClick={onAdminPanelClick}
+                className="bg-blue-100 text-blue-600 px-3 py-1 rounded-md hover:bg-blue-200"
+              >
+                Painel Admin
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-4">
             {user ? (
@@ -73,7 +84,7 @@ export default function Header({
                       <GiTennisBall className="w-5 h-5 text-blue-600" />
                     </div>
                   )}
-                  <span>{user.name}</span>
+                  <span>{formatDisplayName(user.name)}</span>
                 </button>
                 <button
                   onClick={onLogoutClick}
@@ -91,9 +102,10 @@ export default function Header({
                 <span>Entrar</span>
               </button>
             )}
+            {/* Remove the duplicate admin panel button here */}
           </div>
         </div>
       </div>
     </header>
-  );
+);
 }

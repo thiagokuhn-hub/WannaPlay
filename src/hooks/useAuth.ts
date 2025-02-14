@@ -33,7 +33,7 @@ export function useAuth() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, is_admin')
+        .select('*, is_admin')  // Make sure is_admin is included
         .eq('id', userId)
         .single()
 
@@ -138,19 +138,19 @@ export function useAuth() {
 
       if (data.user) {
         console.log('Fetching user profile for ID:', data.user.id);
-        const { data: userData, error: userError } = await supabase
+        const { data: profile, error: profileError } = await supabase  // Changed variable names
           .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single()
+          .select('*, is_admin')
+          .eq('id', data.user.id)  // Fixed: using data.user.id instead of userId
+          .single();
 
-        console.log('Profile response:', { userData, userError });
+        console.log('Profile response:', { profile, profileError });  // Updated log variables
 
-        if (userError) throw userError
+        if (profileError) throw profileError  // Fixed variable name
         
         // Force a state update by creating a new object
-        setUser({ ...userData })
-        return { success: true, user: userData }
+        setUser({ ...profile })  // Using profile instead of userData
+        return { success: true, user: profile }  // Using profile instead of userData
       }
       
       return { success: false, error: 'Login failed' }

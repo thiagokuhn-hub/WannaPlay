@@ -13,9 +13,22 @@ import Header from './components/Header';
 import AdminPanel from './components/admin/AdminPanel';
 import { useLocations } from './hooks/useLocations';
 import { supabase } from './lib/supabase';
+import Modal from './components/modals/Modal';
 
 function App() {
-  const { user, signOut, signIn, updateProfile } = useAuth();
+  const { user, signIn, signOut, updateProfile } = useAuth();
+  
+  // Remove this duplicate line
+  // const { user: currentUser } = useAuth();
+  
+  // Update the debug log to use 'user' instead of 'currentUser'
+  useEffect(() => {
+    if (user) {
+      console.log('Current user admin status:', user.is_admin);
+      console.log('Full user data:', user);
+    }
+  }, [user]);
+
   const { games, setGames, handleGameProposal, handleJoinGame, handleRemovePlayer } = useGames();
   const { 
     availabilities, 
@@ -43,7 +56,7 @@ function App() {
   };
 
   const handleEditProfile = async (data: Partial<Player>) => {
-    if (user) {
+    if (user) {  // Now user is properly defined
       try {
         const apiData = {
           ...data,
@@ -63,13 +76,30 @@ function App() {
 
   const handleEditGame = async (gameId: string, data: Partial<GameProposal>) => {
     try {
+      // Convert camelCase to snake_case for database columns
+      const dbData = {
+        ...data,
+        start_time: data.startTime,
+        end_time: data.endTime,
+        required_categories: data.requiredCategories,
+        max_players: data.maxPlayers,
+        locations: data.locationIds,
+      };
+  
+      // Remove the camelCase properties
+      delete dbData.startTime;
+      delete dbData.endTime;
+      delete dbData.requiredCategories;
+      delete dbData.maxPlayers;
+      delete dbData.locationIds;
+  
       const { error } = await supabase
         .from('games')
-        .update(data)
+        .update(dbData)
         .eq('id', gameId);
-
+  
       if (error) throw error;
-
+  
       setGames(prevGames =>
         prevGames.map(game =>
           game.id === gameId ? { ...game, ...data } : game
@@ -188,7 +218,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <Header 
         user={user}
         onLoginClick={() => setShowLogin(true)}
@@ -263,13 +293,32 @@ function App() {
         />
       )}
 
-      {showAdminPanel && user?.isAdmin && (
-        <AdminPanel
+      {showAdminPanel && user?.is_admin && (
+        <Modal
+          isOpen={showAdminPanel}
           onClose={() => setShowAdminPanel(false)}
-          onBlockUser={handleBlockUser}
-          onUnblockUser={handleUnblockUser}
-          locations={locations}
-        />
+          title="Painel Administrativo"
+        >
+          <AdminPanel
+            locations={locations}
+            games={games}
+            availabilities={availabilities}
+            onAddLocation={(location) => {
+              console.log('Add location:', location);
+            }}
+            onEditLocation={(id, data) => {
+              console.log('Edit location:', id, data);
+            }}
+            onDeleteLocation={(id) => {
+              console.log('Delete location:', id);
+            }}
+            onDeleteGame={handleDeleteGame}
+            onDeleteAvailability={handleDeleteAvailability}
+            onBlockUser={handleBlockUser}
+            onUnblockUser={handleUnblockUser}
+            onClose={() => setShowAdminPanel(false)}
+          />
+        </Modal>
       )}
     </div>
   );

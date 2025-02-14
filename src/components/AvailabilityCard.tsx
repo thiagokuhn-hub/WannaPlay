@@ -4,6 +4,7 @@ import { GiTennisBall } from 'react-icons/gi';
 import { Availability, WeekDay, Location } from '../types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatDisplayName } from '../utils/nameUtils';
 
 interface AvailabilityCardProps {
   availability: Availability;
@@ -104,7 +105,7 @@ export default function AvailabilityCard({
             </div>
           )}
           <div>
-            <h3 className="font-medium text-gray-900 text-sm">{availability.player.name}</h3>
+            <h3 className="font-medium text-gray-900 text-sm">{formatDisplayName(availability.player.name)}</h3>
             <p className="text-xs text-gray-500">
               {getCategoryDisplay()} • {getGenderLabel(availability.player.gender)} • {getPlayingSideLabel(availability.player.playing_side)}
             </p>

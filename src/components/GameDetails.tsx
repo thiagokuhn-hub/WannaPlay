@@ -5,6 +5,7 @@ import { GameProposal, Player } from '../types';
 import { formatGameDate } from '../utils/dateUtils';
 import { getGameGenderLabel } from '../utils/formatters';
 import Modal from './modals/Modal';
+import { formatDisplayName } from '../utils/nameUtils';
 
 interface GameDetailsProps {
   game: GameProposal;
@@ -201,7 +202,7 @@ export default function GameDetails({
                             </div>
                           )}
                           <div>
-                            <p className="font-medium text-gray-900">{player.name}</p>
+                            <p className="font-medium text-gray-900">{formatDisplayName(player.name)}</p>
                             <div className="text-sm text-gray-500 space-y-1">
                               {getPlayerCategories(player).map((category, index) => (
                                 <span key={index} className="block">{category}</span>

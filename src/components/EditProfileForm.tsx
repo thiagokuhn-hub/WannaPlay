@@ -32,6 +32,15 @@ export default function EditProfileForm({
   locations
 }: Omit<EditProfileFormProps, 'currentUser'>) {
   const { user: currentUser } = useAuth();
+  
+  // Add this console log to debug
+  useEffect(() => {
+    if (currentUser) {
+      console.log('Current user admin status:', currentUser.is_admin);
+      console.log('Full user data:', currentUser);
+    }
+  }, [currentUser]);
+
   const [activeTab, setActiveTab] = useState<'profile' | 'history'>('profile');
   const [formData, setFormData] = useState({
     name: '',

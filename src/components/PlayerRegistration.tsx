@@ -222,18 +222,33 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Gênero
             </label>
-            <select
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })}
-            >
-              <option value="male">Masculino</option>
-              <option value="female">Feminino</option>
-            </select>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="male"
+                  checked={formData.gender === 'male'}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Masculino</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="female"
+                  checked={formData.gender === 'female'}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Feminino</span>
+              </label>
+            </div>
           </div>
 
           <div>
@@ -340,23 +355,44 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Lado Preferido
             </label>
-            <select
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.playingSide}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  playingSide: e.target.value as PlayingSide,
-                })
-              }
-            >
-              <option value="left">Esquerdo</option>
-              <option value="right">Direito</option>
-              <option value="both">Ambos</option>
-            </select>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="playingSide"
+                  value="left"
+                  checked={formData.playingSide === 'left'}
+                  onChange={(e) => setFormData({ ...formData, playingSide: e.target.value as PlayingSide })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Esquerdo</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="playingSide"
+                  value="right"
+                  checked={formData.playingSide === 'right'}
+                  onChange={(e) => setFormData({ ...formData, playingSide: e.target.value as PlayingSide })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Direito</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="playingSide"
+                  value="both"
+                  checked={formData.playingSide === 'both'}
+                  onChange={(e) => setFormData({ ...formData, playingSide: e.target.value as PlayingSide })}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Ambos</span>
+              </label>
+            </div>
           </div>
 
           <button
