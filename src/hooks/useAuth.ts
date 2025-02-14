@@ -174,6 +174,10 @@ export function useAuth() {
   // Add this function inside useAuth
   const updateProfile = async (data: Partial<Player>) => {
     try {
+      if (!user?.id) {
+        throw new Error('Usuário não encontrado');
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -187,14 +191,11 @@ export function useAuth() {
           avatar: data.avatar,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user?.id);
+        .eq('id', user.id);
 
       if (error) throw error;
 
-      // Fetch updated user data
-      if (user?.id) {
-        await fetchUser(user.id);
-      }
+      await fetchUser(user.id);
     } catch (error) {
       console.error('Error updating profile:', error);
       throw error;

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Users, RefreshCw } from 'lucide-react';
 import { GameProposal, Availability, Player, Location } from '../types';
 import { formatGameDate } from '../utils/dateUtils';
 import { getGameGenderLabel } from '../utils/formatters';
 import RepublishModal from './RepublishModal';
+import { useAvailabilities } from '../hooks/useAvailabilities';
+import { supabase } from '../lib/supabase';
 
 interface PlayerHistoryProps {
   player: Player;
@@ -12,7 +14,7 @@ interface PlayerHistoryProps {
   onViewGame: (game: GameProposal) => void;
   onRepublishGame?: (game: GameProposal) => void;
   onRepublishAvailability?: (availability: Availability, data: { duration: '7days' | '14days' }) => void;
-  locations: Location[]; // Add locations prop
+  locations: Location[];
 }
 
 export default function PlayerHistory({
@@ -22,53 +24,154 @@ export default function PlayerHistory({
   onViewGame,
   onRepublishGame,
   onRepublishAvailability,
-  locations = [] // Add locations with default empty array
+  locations = []
 }: PlayerHistoryProps) {
+  const { handleRepublishAvailability } = useAvailabilities();
   const [activeTab, setActiveTab] = useState<'games' | 'availabilities'>('games');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'deleted'>('all');
   const [itemToRepublish, setItemToRepublish] = useState<GameProposal | Availability | null>(null);
+  const [localAvailabilities, setLocalAvailabilities] = useState(availabilities);
+
+  useEffect(() => {
+    setLocalAvailabilities(availabilities);
+  }, [availabilities]);
 
   const playerGames = games.filter(game => 
     game.players.some(p => p.id === player.id) || game.createdBy.id === player.id
   );
 
-  const playerAvailabilities = availabilities.filter(
+  const playerAvailabilities = localAvailabilities.filter(
     availability => availability.player.id === player.id
   );
 
-  // Function to get location names from IDs
   const getLocationNames = (locationIds: string[]) => {
     return locationIds
       .map(id => {
         const location = locations.find(loc => loc.id === id);
         return location ? location.name : '';
       })
-      .filter(Boolean) // Remove empty strings
+      .filter(Boolean)
       .join(' / ');
   };
 
-  const handleRepublish = (data: any) => {
+  const handleRepublish = async (data: any) => {
     if (!itemToRepublish) return;
   
-    if ('sport' in itemToRepublish) {
-      // It's a game
-      const updatedGame = {
-        ...itemToRepublish,
-        date: data.date === undefined ? itemToRepublish.date : data.date,
-        startTime: data.startTime || itemToRepublish.startTime,
-        endTime: data.endTime || itemToRepublish.endTime,
-        status: 'open',
-        players: [player],
-        createdAt: new Date().toISOString(),
-        deletedAt: undefined
-      };
-      onRepublishGame?.(updatedGame);
-    } else {
-      // It's an availability
-      onRepublishAvailability?.(itemToRepublish, { duration: data.duration });
-    }
+    try {
+      if ('sport' in itemToRepublish) {
+        // It's a game
+        const dbGame = {
+          date: data.date === undefined ? itemToRepublish.date : data.date,
+          start_time: data.startTime || itemToRepublish.startTime,
+          end_time: data.endTime || itemToRepublish.endTime,
+          status: 'open',
+          created_by: player.id,
+          created_at: new Date().toISOString(),
+          deleted_at: null,
+          locations: itemToRepublish.locations,
+          sport: itemToRepublish.sport,
+          gender: itemToRepublish.gender,
+          max_players: itemToRepublish.maxPlayers,
+          required_categories: itemToRepublish.requiredCategories,
+          notes: itemToRepublish.notes
+        };
   
-    setItemToRepublish(null);
+        // First update in Supabase
+        const { error } = await supabase
+          .from('games')
+          .update(dbGame)
+          .eq('id', itemToRepublish.id);
+  
+        if (error) throw error;
+  
+        // Then update game_players table
+        const { error: playersError } = await supabase
+          .from('game_players')
+          .delete()
+          .eq('game_id', itemToRepublish.id);
+  
+        if (playersError) throw playersError;
+  
+        // Add the creator as the first player
+        const { error: addPlayerError } = await supabase
+          .from('game_players')
+          .insert({
+            game_id: itemToRepublish.id,
+            player_id: player.id,
+            joined_at: new Date().toISOString()
+          });
+  
+        if (addPlayerError) throw addPlayerError;
+        
+        // Format the game for frontend use
+        const formattedGame = {
+          ...itemToRepublish,
+          date: dbGame.date,
+          startTime: dbGame.start_time,
+          endTime: dbGame.end_time,
+          status: dbGame.status,
+          createdBy: player,
+          createdAt: dbGame.created_at,
+          deletedAt: dbGame.deleted_at,
+          players: [player],
+          maxPlayers: dbGame.max_players,
+          requiredCategories: dbGame.required_categories
+        };
+  
+        // Update local games array
+        const gameIndex = games.findIndex(g => g.id === itemToRepublish.id);
+        if (gameIndex !== -1) {
+          games[gameIndex] = formattedGame;
+        }
+        
+        // Call the parent's onRepublishGame handler
+        if (onRepublishGame) {
+          await onRepublishGame(formattedGame);
+        }
+      } else {
+        // Availability republishing logic remains the same
+        const updatedAvailability = {
+          ...itemToRepublish,
+          id: itemToRepublish.id,
+          player: itemToRepublish.player,
+          sports: itemToRepublish.sports,
+          locations: itemToRepublish.locations,
+          timeSlots: itemToRepublish.timeSlots,
+          notes: itemToRepublish.notes,
+          status: 'active',
+          duration: data.duration,
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + (data.duration === '7days' ? 7 : 14) * 24 * 60 * 60 * 1000).toISOString(),
+          deletedAt: undefined
+        };
+    
+        // First update in the database
+        const result = await handleRepublishAvailability(itemToRepublish, { duration: data.duration });
+        
+        // Update local state immediately
+        setLocalAvailabilities(prev => 
+          prev.map(avail => 
+            avail.id === itemToRepublish.id ? updatedAvailability : avail
+          )
+        );
+        
+        // Update parent component state
+        if (onRepublishAvailability) {
+          await onRepublishAvailability(updatedAvailability, { duration: data.duration });
+        }
+    
+        // Update the main availabilities array
+        const availabilityIndex = availabilities.findIndex(a => a.id === itemToRepublish.id);
+        if (availabilityIndex !== -1) {
+          availabilities[availabilityIndex] = updatedAvailability;
+        }
+      }
+      
+      setItemToRepublish(null);
+    } catch (error) {
+      console.error('Error republishing:', error);
+      alert('Erro ao republicar. Por favor, tente novamente.');
+    }
   };
 
   const canRepublish = (item: GameProposal | Availability) => {

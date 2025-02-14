@@ -13,7 +13,7 @@ interface GameDetailsProps {
   onEdit?: () => void;
   onDelete?: (gameId: string) => void;
   onRemovePlayer?: (gameId: string, playerId: string) => void;
-  locations: Location[]; // Add this prop
+  locations: Location[];
 }
 
 export default function GameDetails({ 
@@ -30,6 +30,7 @@ export default function GameDetails({
 
   const handleRemovePlayer = (playerId: string) => {
     onRemovePlayer?.(game.id, playerId);
+    onClose();
   };
 
   const handleDelete = () => {
@@ -232,11 +233,11 @@ export default function GameDetails({
                               <p className="text-sm text-gray-500">{player.email}</p>
                             )}
                           </div>
-                          {isCreator && player.id !== currentUser?.id && (
+                          {(isCreator || (currentUser?.id === player.id)) && player.id !== game.createdBy.id && (
                             <button
                               onClick={() => handleRemovePlayer(player.id)}
                               className="text-red-500 hover:text-red-700 transition-colors"
-                              title="Remover jogador"
+                              title={currentUser?.id === player.id ? "Sair do jogo" : "Remover jogador"}
                             >
                               <UserMinus className="w-5 h-5" />
                             </button>

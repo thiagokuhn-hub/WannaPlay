@@ -6,17 +6,19 @@ import RegistrationPrompt from './RegistrationPrompt';
 interface JoinGameModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onJoin: (player: Player, message: string) => void;
+  onJoin: (gameId: string, message: string) => Promise<void>;
   onRegisterPrompt: () => void;
   currentUser: Player | null;
+  gameId: string;
 }
 
 export default function JoinGameModal({ 
   isOpen, 
   onClose, 
-  onJoin, 
+  onJoin,
   onRegisterPrompt,
-  currentUser 
+  currentUser,
+  gameId
 }: JoinGameModalProps) {
   const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(!currentUser);
   const [formData, setFormData] = useState({
@@ -29,22 +31,7 @@ export default function JoinGameModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (currentUser) {
-      onJoin(currentUser, formData.message);
-      return;
-    }
-
-    const player: Player = {
-      id: Date.now().toString(),
-      name: formData.name,
-      phone: formData.phone,
-      email: '',
-      password: '',
-      skillLevel: formData.skillLevel,
-      playingSide: formData.playingSide,
-    };
-    onJoin(player, formData.message);
+    onJoin(gameId, formData.message);  // Fix: Use formData.message instead of message
   };
 
   if (!isOpen) return null;

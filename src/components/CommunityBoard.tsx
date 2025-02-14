@@ -21,15 +21,15 @@ interface CommunityBoardProps {
   currentUser: Player | null;
   userGames: GameProposal[];
   locations: Location[];
-  onJoinGame: (gameId: string, player: Player, message?: string) => void;
-  onGameProposal: (data: any, player: Player) => void;
-  onEditGame: (gameId: string, data: Partial<GameProposal>) => void;
-  onDeleteGame: (gameId: string) => void;
-  onAddAvailability: (data: Partial<Availability>) => void;
-  onEditAvailability: (availabilityId: string, data: Partial<Availability>) => void;
-  onDeleteAvailability: (availabilityId: string) => void;
+  onJoinGame: (gameId: string, player: Player, message: string) => Promise<void>;
+  onGameProposal: (data: Partial<GameProposal>, player: Profile) => Promise<void>;
+  onEditGame: (gameId: string, data: Partial<GameProposal>) => Promise<void>;
+  onDeleteGame: (gameId: string) => Promise<void>;
+  onAddAvailability: (data: Partial<Availability>) => Promise<void>;
+  onEditAvailability: (availabilityId: string, data: Partial<Availability>) => Promise<void>; // Make sure this is defined
+  onDeleteAvailability: (availabilityId: string) => Promise<void>;
   onRegisterPrompt: () => void;
-  onRemovePlayer: (gameId: string, playerId: string) => void;
+  onRemovePlayer: (gameId: string, playerId: string) => Promise<void>;
 }
 
 export default function CommunityBoard({
@@ -97,6 +97,7 @@ export default function CommunityBoard({
     handleActionWithAuth(
       'participar de um jogo',
       () => {
+        console.log('Setting game to join:', gameId); // Add debug log
         setSelectedGameToJoin(gameId);
         setShowJoinGameModal(true);
       }
@@ -130,13 +131,22 @@ export default function CommunityBoard({
     onJoinGame(gameId, gamePlayer as Player);
   };
 
-  const handleJoinGameSubmit = (player: Player, message?: string) => {
-    if (selectedGameToJoin) {
-      onJoinGame(selectedGameToJoin, player, message);
-      setShowJoinGameModal(false);
-      setSelectedGameToJoin(null);
-    }
-  };
+  const handleJoinGameSubmit = async (gameId: string, message: string) => {
+      if (!currentUser || !gameId) {
+        console.error('Missing required data:', { currentUser, gameId });
+        return;
+      }
+      
+      try {
+        // Pass gameId directly instead of the game object
+        await onJoinGame(gameId, currentUser, message);
+        setShowJoinGameModal(false);
+        setSelectedGameToJoin(null); // Reset selected game
+      } catch (error) {
+        console.error('Join game error:', error);
+        alert(error instanceof Error ? error.message : 'Erro ao entrar no jogo');
+      }
+    };
 
   const handleGameProposal = (data: any) => {
     if (currentUser) {
@@ -171,13 +181,26 @@ export default function CommunityBoard({
   };
 
   const handleAvailabilitySubmit = (data: Partial<Availability>) => {
-    if (editingAvailability) {
-      onEditAvailability(editingAvailability.id, data);
-      setEditingAvailability(null);
-    } else {
-      onAddAvailability(data);
+    try {
+      if (editingAvailability) {
+        // Make sure onEditAvailability exists before calling it
+        if (!onEditAvailability) {
+          throw new Error('Edit availability function is not defined');
+        }
+        onEditAvailability(editingAvailability.id, data);
+        setEditingAvailability(null);
+      } else {
+        // Make sure onAddAvailability exists before calling it
+        if (!onAddAvailability) {
+          throw new Error('Add availability function is not defined');
+        }
+        onAddAvailability(data);
+      }
+      setShowAvailabilityForm(false);
+    } catch (error) {
+      console.error('Error in availability submission:', error);
+      alert('Erro ao salvar disponibilidade. Por favor, tente novamente.');
     }
-    setShowAvailabilityForm(false);
   };
 
   useEffect(() => {
@@ -213,21 +236,31 @@ export default function CommunityBoard({
   };
 
 
-  const handleRemovePlayer = (gameId: string, playerId: string) => {
-    if (window.confirm('Tem certeza que deseja remover este jogador?')) {
-      onRemovePlayer(gameId, playerId);
-      
-      // Update only the selected game if needed
-      const updatedGame = games.find(g => g.id === gameId);
-      if (selectedGame?.id === gameId && updatedGame) {
-        const gameWithUpdatedPlayers = {
-          ...updatedGame,
-          players: updatedGame.players.filter(player => player.id !== playerId)
-        };
-        setSelectedGame(gameWithUpdatedPlayers);
+  const handleRemovePlayer = async (gameId: string, playerId: string) => {
+      if (!onRemovePlayer) {
+        console.error('onRemovePlayer function is not defined');
+        return;
       }
-    }
-  };
+  
+      try {
+        if (window.confirm('Tem certeza que deseja remover este jogador?')) {
+          await onRemovePlayer(gameId, playerId);
+          
+          // Update local state if needed
+          const updatedGame = games.find(g => g.id === gameId);
+          if (selectedGame?.id === gameId && updatedGame) {
+            const gameWithUpdatedPlayers = {
+              ...updatedGame,
+              players: updatedGame.players.filter(player => player.id !== playerId)
+            };
+            setSelectedGame(gameWithUpdatedPlayers);
+          }
+        }
+      } catch (error) {
+        console.error('Error removing player:', error);
+        alert('Erro ao remover jogador. Por favor, tente novamente.');
+      }
+    };
 
   const filterGames = (games: GameProposal[]) => {
     const today = new Date();
@@ -396,16 +429,17 @@ export default function CommunityBoard({
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Jogos Disponíveis</h2>
               )}
               <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                
                 {filteredGames.map((game) => (
                   <GameCard
                     key={game.id}
                     game={game}
                     currentUser={currentUser}
-                    onGameClick={() => setSelectedGame(game)}
-                    onJoinClick={handleJoinGameClick}
+                    onGameClick={(game) => setSelectedGame(game)}
+                    onJoinGame={handleJoinGameClick}
                     onMarkComplete={handleMarkComplete}
                     onAddPlayerDirectly={handleAddPlayerDirectly}
-                    locations={locations}  // Add this line
+                    locations={locations}
                   />
                 ))}
               </div>
@@ -458,16 +492,14 @@ export default function CommunityBoard({
         />
       )}
 
-      {showJoinGameModal && (
+      {showJoinGameModal && selectedGameToJoin && (
         <JoinGameModal
           isOpen={showJoinGameModal}
-          onClose={() => {
-            setShowJoinGameModal(false);
-            setSelectedGameToJoin(null);
-          }}
+          onClose={() => setShowJoinGameModal(false)}
           onJoin={handleJoinGameSubmit}
           onRegisterPrompt={onRegisterPrompt}
           currentUser={currentUser}
+          gameId={selectedGameToJoin}  // Make sure this is being passed
         />
       )}
 

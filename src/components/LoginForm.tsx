@@ -81,15 +81,17 @@ export default function LoginForm({ isOpen, onClose, onSubmit, onRegisterClick }
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
 
-        <div className="text-center">
-          
-          <button
-            type="button"
-            onClick={onRegisterClick}  // Changed from onSwitchToRegister
-            className="text-blue-600 hover:text-blue-800 text-sm"
-          >
-            Não tem uma conta? Cadastre-se
-          </button>
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-600">
+            Não tem uma conta?{' '}
+            <button
+              type="button"
+              onClick={onRegisterClick}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              Cadastre-se
+            </button>
+          </p>
         </div>
       </form>
     </Modal>

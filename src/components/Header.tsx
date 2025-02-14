@@ -6,28 +6,30 @@ import NotificationBell from './notifications/NotificationBell';
 import { useAuth } from '../hooks/useAuth';
 
 interface HeaderProps {
-  currentUser: Player | null;
+  user: Player | null;  // Add this back
   onLoginClick: () => void;
-  onLogout: () => void;
+  onRegisterClick: () => void;
   onEditProfile: () => void;
+  onLogoutClick: () => void;
   notifications: Notification[];
   onMarkNotificationAsRead: (notificationId: string) => void;
   onClearAllNotifications: () => void;
-  children?: ReactNode; // Adicionar suporte para children
+  onAdminPanelClick: () => void;
 }
 
 export default function Header({
-  currentUser,
+  user,  // Add this back
   onLoginClick,
-  onLogout,
+  onRegisterClick,
   onEditProfile,
+  onLogoutClick,
   notifications,
   onMarkNotificationAsRead,
   onClearAllNotifications,
-  children
+  onAdminPanelClick
 }: HeaderProps) {
-  const { user } = useAuth();
-  const displayUser = user || currentUser;
+  // Remove the useAuth hook since we're getting user from props
+  // const { user } = useAuth();
 
   const handleLogoClick = () => {
     window.location.href = '/'; // Navigate to home page
@@ -47,22 +49,21 @@ export default function Header({
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            {displayUser ? (
+            {user ? (
               <div className="flex items-center gap-4">
                 <NotificationBell
                   notifications={notifications}
                   onMarkAsRead={onMarkNotificationAsRead}
                   onClearAll={onClearAllNotifications}
                 />
-                {children}
                 <button
-                  onClick={() => onEditProfile()} // Make sure this is being called
+                  onClick={onEditProfile}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
                 >
-                  {displayUser.avatar ? (
+                  {user.avatar ? (
                     <div className="w-8 h-8 rounded-full overflow-hidden">
                       <img
-                        src={displayUser.avatar}
+                        src={user.avatar}
                         alt="Avatar"
                         className="w-full h-full object-cover"
                       />
@@ -72,10 +73,10 @@ export default function Header({
                       <GiTennisBall className="w-5 h-5 text-blue-600" />
                     </div>
                   )}
-                  <span>{displayUser.name}</span>
+                  <span>{user.name}</span>
                 </button>
                 <button
-                  onClick={onLogout}
+                  onClick={onLogoutClick}
                   className="text-gray-600 hover:text-gray-900"
                 >
                   Sair

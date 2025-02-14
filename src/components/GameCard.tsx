@@ -8,25 +8,28 @@ import { formatGameDate } from '../utils/dateUtils';
 import AddPlayerDirectlyModal from './AddPlayerDirectlyModal';
 import { supabase } from '../lib/supabase';
 
+// Add locations to the props interface
 interface GameCardProps {
   game: GameProposal;
+  onJoinGame: (gameId: string, message: string) => void;
   currentUser: Player | null;
-  onGameClick: () => void;
-  onJoinClick: (gameId: string) => void;
+  onRemovePlayer: (gameId: string, playerId: string) => void;
+  locations: Location[];
+  onGameClick?: (game: GameProposal) => void;
   onMarkComplete?: (gameId: string) => void;
-  onAddPlayerDirectly?: (gameId: string, player: Omit<Player, 'email' | 'password'>) => void;
-  locations: Location[]; // Add locations prop
+  onAddPlayerDirectly?: (gameId: string, player: Omit<Player, 'id' | 'email' | 'password'>) => void;
 }
 
-export default function GameCard({ 
-  game, 
-  currentUser, 
+const GameCard: React.FC<GameCardProps> = ({
+  game,
+  onJoinGame,
+  currentUser,
+  onRemovePlayer,
+  locations,
   onGameClick,
-  onJoinClick,
   onMarkComplete,
-  onAddPlayerDirectly,
-  locations
-}: GameCardProps) {
+  onAddPlayerDirectly
+}) => {
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   
   // Debug game ID format
@@ -128,6 +131,17 @@ export default function GameCard({
         name: loc.name
       }))
     });
+    console.log('Detailed Game Debug:', {
+      game: {
+        id: game.id,
+        sport: game.sport,
+        requiredCategories: game.requiredCategories,
+        required_categories: game.required_categories,
+        players: game.players
+      },
+      locations, // Use locations instead of availableLocations
+      rawGame: game
+    });
   }, [game, locations]);
 
   const getLocationNames = () => {
@@ -160,8 +174,10 @@ export default function GameCard({
 
   return (
     <>
-      <div className={`${getCardBackground()} rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer`}
-        onClick={onGameClick}>
+      <div 
+        className={`${getCardBackground()} rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer`}
+        onClick={() => onGameClick && onGameClick(game)}
+      >
         <div className="p-3">
           <div className="flex justify-between items-start mb-2">
             <div>
@@ -239,11 +255,12 @@ export default function GameCard({
           </div>
 
           <div className="mt-3 space-y-2">
+           
             {game.status === 'open' && !isPlayerInGame && !isGameCreator && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onJoinClick(game.id);
+                  onJoinGame(game.id); // Changed from onJoinClick to onJoinGame
                 }}
                 className="w-full bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
               >
@@ -297,3 +314,5 @@ export default function GameCard({
     </>
   );
 }
+// Add this line at the end of the file
+export default GameCard;
