@@ -88,7 +88,13 @@ export default function AvailabilityCard({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow">
+    <div className={`rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow ${
+      availability.sports.length === 1 
+        ? availability.sports[0] === 'padel' 
+          ? 'bg-blue-100/70' 
+          : 'bg-green-100/70'
+        : 'bg-white'
+    }`}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           {availability.player.avatar ? (
