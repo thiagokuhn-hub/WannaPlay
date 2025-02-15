@@ -246,6 +246,7 @@ export default function GameProposalForm({
         </div>
       </div>
 
+      // In the locations section
       <div>
         <div className="flex items-center gap-2 mb-2">
           <label className="block text-sm font-medium text-gray-700">
@@ -272,6 +273,7 @@ export default function GameProposalForm({
               ))}
             </div>
           </div>
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-20 bg-gradient-to-l from-white to-transparent" />
         </div>
       </div>
 
