@@ -246,7 +246,7 @@ export default function GameProposalForm({
         </div>
       </div>
 
-      // In the locations section
+      
       <div>
         <div className="flex items-center gap-2 mb-2">
           <label className="block text-sm font-medium text-gray-700">

@@ -8,27 +8,16 @@ import CommunityBoard from './components/CommunityBoard';
 import LoginForm from './components/LoginForm';
 import PlayerRegistration from './components/PlayerRegistration';
 import EditProfileForm from './components/EditProfileForm';
-import { Location } from './types';
+import { Location, Availability, GameProposal, Player } from './types';
 import Header from './components/Header';
 import AdminPanel from './components/admin/AdminPanel';
 import { useLocations } from './hooks/useLocations';
 import { supabase } from './lib/supabase';
 import Modal from './components/modals/Modal';
+import { checkAvailabilitiesMatch, createAvailabilityMatchNotification } from './utils/notificationUtils';
 
 function App() {
   const { user, signIn, signOut, updateProfile } = useAuth();
-  
-  // Remove this duplicate line
-  // const { user: currentUser } = useAuth();
-  
-  // Update the debug log to use 'user' instead of 'currentUser'
-  useEffect(() => {
-    if (user) {
-      console.log('Current user admin status:', user.is_admin);
-      console.log('Full user data:', user);
-    }
-  }, [user]);
-
   const { games, setGames, handleGameProposal, handleJoinGame, handleRemovePlayer } = useGames();
   const { 
     availabilities, 
@@ -45,6 +34,104 @@ function App() {
   const [showRegistration, setShowRegistration] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+  // Debug logging for user
+  useEffect(() => {
+    if (user) {
+      console.log('Current user admin status:', user.is_admin);
+      console.log('Full user data:', user);
+    }
+  }, [user]);
+
+  // Add availability matching effect
+  useEffect(() => {
+    if (!user || !availabilities.length || !locations.length) return;
+
+    console.log('Starting availability match check');
+
+    const checkForMatches = async () => {
+      const userAvailabilities = availabilities.filter(a => 
+        a.player.id === user.id && 
+        a.status !== 'deleted' &&
+        new Date(a.expiresAt) > new Date()
+      );
+
+      const otherAvailabilities = availabilities.filter(a => 
+        a.player.id !== user.id && 
+        a.status !== 'deleted' &&
+        new Date(a.expiresAt) > new Date()
+      );
+
+      // Keep track of players we've already matched with
+      const matchedPlayerIds = new Set();
+
+      for (const otherAvail of otherAvailabilities) {
+        // Skip if we already found a match with this player
+        if (matchedPlayerIds.has(otherAvail.player.id)) continue;
+
+        let foundMatch = false;
+        for (const userAvail of userAvailabilities) {
+          // Inside the checkForMatches function
+          const { timeMatch, locationMatch } = checkAvailabilitiesMatch(
+            userAvail,
+            otherAvail,
+            locations
+          );
+          
+          if (timeMatch && locationMatch.isMatch) {
+            const userLocation = locations.find(l => userAvail.locations.includes(l.id))?.name || '';
+            const otherLocation = locations.find(l => otherAvail.locations.includes(l.id))?.name || '';
+          
+            // Check if notification already exists
+            const { data: existingNotifications } = await supabase
+              .from('notifications')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('type', 'game_match')
+              .eq('message', `Match with availability ${otherAvail.id}`);
+          
+            if (!existingNotifications?.length) {
+              // Create notification only if all criteria are met
+              const notification = createAvailabilityMatchNotification(
+                otherAvail,
+                user.id,
+                locationMatch,
+                locations,
+                userLocation,
+                otherLocation
+              );
+            
+              const { data: savedNotification, error } = await supabase
+                .from('notifications')
+                .insert([{
+                  user_id: notification.userId,
+                  type: 'game_match',
+                  message: notification.message,
+                  title: notification.title,
+                  read: false,
+                  created_at: new Date().toISOString()
+                }])
+                .select()
+                .single();
+            
+              if (error) {
+                console.error('Error saving notification:', error);
+              } else {
+                console.log('New notification created:', savedNotification);
+                setNotifications(prev => [...prev, notification]);
+                // Mark this player as matched
+                matchedPlayerIds.add(otherAvail.player.id);
+                foundMatch = true;
+                break; // Exit the inner loop once we find a match
+              }
+            }
+          }
+        }
+      }
+    };
+
+    checkForMatches();
+  }, [user, availabilities, locations]);
 
   const handleLogin = async (data: { email: string; password: string }) => {
     try {
@@ -212,9 +299,34 @@ function App() {
     );
   };
 
+  // Add debug logging for notifications
+  useEffect(() => {
+    console.log('Notification System Debug:', {
+      currentUser: user,
+      availabilities: availabilities.length,
+      games: games.length,
+      notifications: notifications.length
+    });
+
+    if (user) {
+      const userNotifications = notifications.filter(n => n.userId === user.id);
+      console.log('User Notifications:', {
+        total: userNotifications.length,
+        unread: userNotifications.filter(n => !n.read).length,
+        notifications: userNotifications
+      });
+    }
+  }, [user, availabilities, games, notifications]);
+
   const getUserNotifications = () => {
     if (!user) return [];
-    return notifications.filter(notification => notification.userId === user.id);
+    const userNotifications = notifications.filter(notification => notification.userId === user.id);
+    console.log('Getting user notifications:', {
+      userId: user.id,
+      total: userNotifications.length,
+      notifications: userNotifications
+    });
+    return userNotifications;
   };
 
   return (

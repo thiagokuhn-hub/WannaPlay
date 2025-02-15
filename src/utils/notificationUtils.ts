@@ -74,7 +74,7 @@ export const createAvailabilityMatchNotification = (
   return {
     id: Date.now().toString(),
     userId,
-    type: 'availability_match',
+    type: 'game_match', // Changed to valid enum value
     title: 'Disponibilidade compatível encontrada!',
     message: `${matchedAvailability.player.name} tem disponibilidade para jogar ${
       matchedAvailability.sports.map(sport => sport === 'padel' ? 'Padel' : 'Beach Tennis').join(' ou ')
@@ -113,38 +113,102 @@ export const checkAvailabilityMatch = (
 };
 
 export const checkAvailabilitiesMatch = (
-  availability1: Availability,
-  availability2: Availability,
+  newAvailability: Availability,
+  existingAvailability: Availability,
   allLocations: Location[]
 ): { timeMatch: boolean; locationMatch: LocationMatch } => {
-  // Check if sports match
-  if (!availability1.sports.some(sport => availability2.sports.includes(sport))) {
+  // 1. First check sport and category match
+  if (!newAvailability.sports.some(sport => existingAvailability.sports.includes(sport))) {
+    console.log('Sports do not match');
     return { 
       timeMatch: false, 
       locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
     };
   }
 
-  // Check if time slots overlap
-  const timeMatch = availability1.timeSlots.some(slot1 => 
-    availability2.timeSlots.some(slot2 => {
-      if (slot1.day !== slot2.day) return false;
+  // Strict category matching for each sport
+  const matchingSport = newAvailability.sports.find(sport => 
+    existingAvailability.sports.includes(sport)
+  );
 
-      const start1 = timeToMinutes(slot1.startTime);
-      const end1 = timeToMinutes(slot1.endTime);
-      const start2 = timeToMinutes(slot2.startTime);
-      const end2 = timeToMinutes(slot2.endTime);
+  if (matchingSport === 'padel') {
+    const newCat = newAvailability.player.padel_category;
+    const existingCat = existingAvailability.player.padel_category;
+    
+    if (newCat !== existingCat) {
+      console.log('Padel categories do not match:', { newCat, existingCat });
+      return { 
+        timeMatch: false, 
+        locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
+      };
+    }
+  } else if (matchingSport === 'beach_tennis') {
+    const newCat = newAvailability.player.beach_tennis_category;
+    const existingCat = existingAvailability.player.beach_tennis_category;
+    
+    if (newCat !== existingCat) {
+      console.log('Beach Tennis categories do not match:', { newCat, existingCat });
+      return { 
+        timeMatch: false, 
+        locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
+      };
+    }
+  }
 
-      return (start1 <= end2) && (end1 >= start2);
+  // 2. Check location match
+  const hasCommonLocation = newAvailability.locations.some(loc => 
+    existingAvailability.locations.includes(loc)
+  );
+  if (!hasCommonLocation) {
+    console.log('No common locations');
+    return { 
+      timeMatch: false, 
+      locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
+    };
+  }
+
+  // 3 & 4. Check day and time match
+  const timeMatch = newAvailability.timeSlots.some(newSlot => 
+    existingAvailability.timeSlots.some(existingSlot => {
+      // Check if days match
+      if (newSlot.day !== existingSlot.day) return false;
+
+      // Convert times to minutes for comparison
+      const newStart = timeToMinutes(newSlot.startTime);
+      const newEnd = timeToMinutes(newSlot.endTime);
+      const existingStart = timeToMinutes(existingSlot.startTime);
+      const existingEnd = timeToMinutes(existingSlot.endTime);
+
+      // Check if time slots overlap
+      return newStart >= existingStart && newEnd <= existingEnd;
     })
   );
 
-  // Only check location proximity if times match
-  const locationMatch = timeMatch 
-    ? checkLocationsProximity(availability1.locations, availability2.locations, allLocations)
-    : { isMatch: false, nearbyLocations: [], distance: Infinity };
+  if (!timeMatch) {
+    console.log('Time slots do not match');
+    return { 
+      timeMatch: false, 
+      locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
+    };
+  }
 
-  return { timeMatch, locationMatch };
+  // 5. Check gender match
+  if (newAvailability.player.gender !== existingAvailability.player.gender) {
+    console.log('Gender does not match');
+    return { 
+      timeMatch: false, 
+      locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
+    };
+  }
+
+  // If all criteria are met, calculate location match details
+  const locationMatch = checkLocationsProximity(
+    newAvailability.locations,
+    existingAvailability.locations,
+    allLocations
+  );
+
+  return { timeMatch: true, locationMatch };
 };
 
 export const createGameMatchNotification = (
