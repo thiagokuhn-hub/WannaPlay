@@ -9,16 +9,18 @@ export const formatDate = (date: string) => {
   });
 };
 
-export const getStatusColor = (status: GameStatus) => {
+export const getStatusColor = (status: string) => {
   switch (status) {
     case 'open':
-      return 'bg-green-100 text-green-800';
+      return 'bg-white text-green-600';
     case 'full':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-white text-blue-600';
     case 'cancelled':
-      return 'bg-red-100 text-red-800';
+      return 'bg-white text-red-600';
+    case 'expired':
+      return 'bg-white text-yellow-600';
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-white text-gray-600';
   }
 };
 

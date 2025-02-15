@@ -3,6 +3,8 @@ import { Location } from '../../types';
 import Modal from '../modals/Modal';
 import { MapPin } from 'lucide-react';
 
+import { supabase } from '../../lib/supabase';
+
 interface LocationFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -172,9 +174,46 @@ export default function LocationForm({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const locationData = {
+        name: formData.name,
+        address: formData.address,
+        phone: formData.phone,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        active: formData.active
+      };
+
+      if (initialData) {
+        // Update existing location
+        const { error } = await supabase
+          .from('locations')
+          .update(locationData)
+          .eq('id', initialData.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new location
+        const { error } = await supabase
+          .from('locations')
+          .insert([locationData]);
+
+        if (error) throw error;
+      }
+
+      onSubmit(locationData);
+      onClose();
+    } catch (err) {
+      console.error('Error saving location:', err);
+      setError('Erro ao salvar localização. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

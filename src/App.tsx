@@ -39,7 +39,7 @@ function App() {
   } = useAvailabilities();
   const { notifications, setNotifications, handleMarkNotificationAsRead, handleClearAllNotifications } = useNotifications();
   const { handleBlockUser, handleUnblockUser } = useUserManagement();
-  const { locations } = useLocations();
+  const { locations, setLocations } = useLocations();
 
   const [showLogin, setShowLogin] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
@@ -303,11 +303,26 @@ function App() {
             locations={locations}
             games={games}
             availabilities={availabilities}
-            onAddLocation={(location) => {
-              console.log('Add location:', location);
+            onAddLocation={async (location) => {
+              const { data, error } = await supabase
+                .from('locations')
+                .insert([location])
+                .select()
+                .single();
+              
+              if (error) throw error;
+              setLocations(prev => [...prev, data]);
             }}
-            onEditLocation={(id, data) => {
-              console.log('Edit location:', id, data);
+            onEditLocation={async (id, data) => {
+              const { error } = await supabase
+                .from('locations')
+                .update(data)
+                .eq('id', id);
+              
+              if (error) throw error;
+              setLocations(prev => 
+                prev.map(loc => loc.id === id ? { ...loc, ...data } : loc)
+              );
             }}
             onDeleteLocation={(id) => {
               console.log('Delete location:', id);

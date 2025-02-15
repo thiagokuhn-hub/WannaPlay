@@ -30,6 +30,7 @@ export default function AdminPanel({
   onDeleteAvailability,
   onBlockUser,
   onUnblockUser,
+  onClose
 }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'locations' | 'games' | 'availabilities' | 'users'>('locations');
   const [showLocationForm, setShowLocationForm] = useState(false);

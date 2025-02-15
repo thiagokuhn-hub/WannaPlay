@@ -372,43 +372,24 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
             <LocationInfoTooltip locations={availableLocations} />
           </div>
           <div className="relative">
-            <div className="flex flex-wrap gap-2">
-              {visibleLocations.map((location) => (
-                <button
-                  key={location.id}
-                  type="button"
-                  onClick={() => handleLocationToggle(location.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    formData.locations.includes(location.id)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {location.name}
-                </button>
-              ))}
-            </div>
-            
-            {availableLocations.length > 3 && (
-              <div className="flex justify-between mt-2">
-                <button
-                  type="button"
-                  onClick={showPreviousLocations}
-                  disabled={locationStartIndex === 0}
-                  className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400"
-                >
-                  ← Anterior
-                </button>
-                <button
-                  type="button"
-                  onClick={showNextLocations}
-                  disabled={locationStartIndex + 3 >= availableLocations.length}
-                  className="text-sm text-blue-600 hover:text-blue-800 disabled:text-gray-400"
-                >
-                  Próximo →
-                </button>
+            <div className="overflow-x-auto pb-2 hide-scrollbar">
+              <div className="flex gap-2 min-w-min">
+                {availableLocations.map((location) => (
+                  <button
+                    key={location.id}
+                    type="button"
+                    onClick={() => handleLocationToggle(location.id)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                      formData.locations.includes(location.id)
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {location.name}
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         </div>
 
