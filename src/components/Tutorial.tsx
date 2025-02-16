@@ -1,27 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import Joyride, { Step } from 'react-joyride';
 
-export default function Tutorial() {
+interface TutorialProps {
+  initialDelay?: number;
+}
+
+export default function Tutorial({ initialDelay = 5000 }: TutorialProps) {
   const [run, setRun] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setRun(true);
-    }, 500);
+    }, initialDelay);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [initialDelay]);
 
   const steps: Step[] = [
     {
       target: '.availability-button',
-      content: 'Quero Jogar: Aqui você diz em que dias e horários você pode jogar na semana, assim outros jogadores podem saber.',
+      content: 'Aqui você diz em que dias e horários você pode jogar durante a semana assim outros jogadores podem saber.',
       placement: 'bottom',
       disableBeacon: true
     },
     {
       target: '.propose-game-button',
-      content: 'Propor Jogo: Aqui você cadastra um jogo e jogadores podem se increver para jogar com você.',
+      content: 'Aqui você cadastra um jogo e jogadores podem se increver para jogar com você.',
       placement: 'bottom'
     },
     {
