@@ -15,6 +15,9 @@ import { useLocations } from './hooks/useLocations';
 import { supabase } from './lib/supabase';
 import Modal from './components/modals/Modal';
 import { checkAvailabilitiesMatch, createAvailabilityMatchNotification } from './utils/notificationUtils';
+import Footer from './components/Footer';
+// Add import
+import Tutorial from './components/Tutorial';
 
 function App() {
   const { user, signIn, signOut, updateProfile } = useAuth();
@@ -29,6 +32,9 @@ function App() {
   const { notifications, setNotifications, handleMarkNotificationAsRead, handleClearAllNotifications } = useNotifications();
   const { handleBlockUser, handleUnblockUser } = useUserManagement();
   const { locations, setLocations } = useLocations();
+
+  // Modified to always show tutorial (for testing)
+  const [showTutorial] = useState(true);
 
   const [showLogin, setShowLogin] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
@@ -330,7 +336,9 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {showTutorial && <Tutorial />}
+      
       <Header 
         user={user}
         onLoginClick={() => setShowLogin(true)}
@@ -343,7 +351,7 @@ function App() {
         onAdminPanelClick={() => setShowAdminPanel(true)}
       />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-grow">
         <CommunityBoard
           games={games}
           availabilities={availabilities}
@@ -361,6 +369,8 @@ function App() {
           onRemovePlayer={handleRemovePlayer}
         />
       </main>
+
+      <Footer />
 
       {showLogin && (
         <LoginForm

@@ -388,16 +388,18 @@ export default function CommunityBoard({
 
   return (
     <div className="space-y-4">
-      <ActionButtons
-        currentUser={currentUser}
-        onProposeGame={handleProposeGame}
-        onAddAvailability={handleAddAvailability}
-      />
+      <div className="game-proposal">
+        <ActionButtons
+          currentUser={currentUser}
+          onProposeGame={handleProposeGame}
+          onAddAvailability={handleAddAvailability}
+        />
+      </div>
 
       <div className="flex flex-col space-y-4">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors w-fit"
+          className="filter-button flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors w-fit"
         >
           <Filter className="w-4 h-4" />
           {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
@@ -420,16 +422,13 @@ export default function CommunityBoard({
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
               <LoadingSkeleton />
               <LoadingSkeleton />
-              <LoadingSkeleton />
-              <LoadingSkeleton />
             </div>
           ) : (
             <>
               {filteredGames.length > 0 && (
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Jogos Disponíveis</h2>
               )}
-              <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-                
+              <div className="games-list grid gap-6 grid-cols-1 md:grid-cols-2">
                 {filteredGames.map((game) => (
                   <GameCard
                     key={game.id}
@@ -448,7 +447,7 @@ export default function CommunityBoard({
         </div>
 
         <div className="lg:col-span-3">
-          <div className="sticky top-4">
+          <div className="availability-section sticky top-4">
             {isLoading ? (
               <div className="space-y-4">
                 <LoadingSkeleton />
