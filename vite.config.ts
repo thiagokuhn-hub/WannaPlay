@@ -7,7 +7,21 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     build: {
       outDir: 'dist',
-      sourcemap: true
+      sourcemap: true,
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: [
+              'react',
+              'react-dom',
+              'react-joyride',
+              'lucide-react',
+              '@supabase/supabase-js'
+            ]
+          }
+        }
+      }
     },
     server: {
       port: 3000
@@ -16,7 +30,6 @@ export default defineConfig(({ mode }) => {
       'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
       'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY)
     },
-    // Add this section
     html: {
       title: 'QueroJogar'
     }

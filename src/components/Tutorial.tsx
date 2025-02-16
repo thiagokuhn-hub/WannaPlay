@@ -19,7 +19,7 @@ export default function Tutorial({ initialDelay = 5000 }: TutorialProps) {
   const steps: Step[] = [
     {
       target: '.availability-button',
-      content: 'Aqui você diz em que dias e horários você pode jogar durante a semana assim outros jogadores podem saber.',
+      content: 'Bem vindo ao QueroJogar! Neste botão você diz em que dias e horários você pode jogar durante a semana assim outros jogadores podem saber e te contatar.',
       placement: 'bottom',
       disableBeacon: true
     },
