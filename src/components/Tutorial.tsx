@@ -9,11 +9,15 @@ export default function Tutorial({ initialDelay = 5000 }: TutorialProps) {
   const [run, setRun] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setRun(true);
-    }, initialDelay);
-
-    return () => clearTimeout(timer);
+    const hasSeenTutorial = localStorage.getItem('tutorialComplete');
+    
+    if (!hasSeenTutorial) {
+      const timer = setTimeout(() => {
+        setRun(true);
+      }, initialDelay);
+      
+      return () => clearTimeout(timer);
+    }
   }, [initialDelay]);
 
   const steps: Step[] = [
