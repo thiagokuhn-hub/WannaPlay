@@ -35,9 +35,10 @@ export default function Tutorial({ initialDelay = 5000, force = false, onClose }
       placement: 'bottom'
     },
     {
-      target: '.games-list',
+      target: '.games-section',  // Changed from '.games-list' to '.games-section'
       content: 'Área de jogos disponíveis: Aqui você encontra todos jogos que estão esperando jogadores.',
-      placement: 'top', // Changed from 'left' to 'top'
+      placement: 'top',
+      disableBeacon: true
     },
     {
       target: '.availability-section',

@@ -426,22 +426,24 @@ export default function CommunityBoard({
           ) : (
             <>
               {filteredGames.length > 0 && (
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Jogos Disponíveis</h2>
+                <div className="games-section">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Jogos Disponíveis</h2>
+                  <div className="games-list grid gap-6 grid-cols-1 md:grid-cols-2">
+                    {filteredGames.map((game) => (
+                      <GameCard
+                        key={game.id}
+                        game={game}
+                        currentUser={currentUser}
+                        onGameClick={(game) => setSelectedGame(game)}
+                        onJoinGame={handleJoinGameClick}
+                        onMarkComplete={handleMarkComplete}
+                        onAddPlayerDirectly={handleAddPlayerDirectly}
+                        locations={locations}
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
-              <div className="games-list grid gap-6 grid-cols-1 md:grid-cols-2">
-                {filteredGames.map((game) => (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    currentUser={currentUser}
-                    onGameClick={(game) => setSelectedGame(game)}
-                    onJoinGame={handleJoinGameClick}
-                    onMarkComplete={handleMarkComplete}
-                    onAddPlayerDirectly={handleAddPlayerDirectly}
-                    locations={locations}
-                  />
-                ))}
-              </div>
             </>
           )}
         </div>
