@@ -21,7 +21,9 @@ export default defineConfig(({ mode }) => {
             ]
           }
         }
-      }
+      },
+      cssCodeSplit: true,
+      cssMinify: 'lightningcss'
     },
     server: {
       port: 3000

@@ -3,22 +3,24 @@ import Joyride, { Step } from 'react-joyride';
 
 interface TutorialProps {
   initialDelay?: number;
+  force?: boolean;
+  onClose?: () => void;  // Add this prop
 }
 
-export default function Tutorial({ initialDelay = 5000 }: TutorialProps) {
+export default function Tutorial({ initialDelay = 5000, force = false, onClose }: TutorialProps) {
   const [run, setRun] = useState(false);
 
   useEffect(() => {
     const hasSeenTutorial = localStorage.getItem('tutorialComplete');
     
-    if (!hasSeenTutorial) {
+    if (!hasSeenTutorial || force) {
       const timer = setTimeout(() => {
         setRun(true);
       }, initialDelay);
       
       return () => clearTimeout(timer);
     }
-  }, [initialDelay]);
+  }, [initialDelay, force]);
 
   const steps: Step[] = [
     {
@@ -35,7 +37,7 @@ export default function Tutorial({ initialDelay = 5000 }: TutorialProps) {
     {
       target: '.games-list',
       content: 'Área de jogos disponíveis: Aqui você encontra todos jogos que estão esperando jogadores.',
-      placement: 'left'
+      placement: 'top', // Changed from 'left' to 'top'
     },
     {
       target: '.availability-section',
@@ -78,6 +80,7 @@ export default function Tutorial({ initialDelay = 5000 }: TutorialProps) {
         if (['finished', 'skipped'].includes(status)) {
           setRun(false);
           localStorage.setItem('tutorialComplete', 'true');
+          onClose?.();  // Call onClose when tutorial is finished or skipped
         }
       }}
     />

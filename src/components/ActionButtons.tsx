@@ -46,8 +46,14 @@ export default function ActionButtons({
           <Info className="w-5 h-5" />
         </button>
       </div>
-
-      {showTutorial && <Tutorial initialDelay={0} />}
+      
+      {showTutorial && (
+        <Tutorial 
+          initialDelay={0} 
+          force={true} 
+          onClose={() => setShowTutorial(false)} 
+        />
+      )}
     </>
   );
 }
