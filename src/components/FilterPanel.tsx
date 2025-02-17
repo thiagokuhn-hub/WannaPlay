@@ -37,7 +37,10 @@ export default function FilterPanel({ filters, onFilterChange, games, availabili
       game.requiredCategories.forEach(cat => options.categories.add(cat));
       options.genders.add(game.gender);
       
-      const gameDay = getDayFromDate(new Date(game.date));
+      // Fix: Create a new Date object and adjust for timezone
+      const gameDate = new Date(game.date);
+      gameDate.setMinutes(gameDate.getMinutes() + gameDate.getTimezoneOffset());
+      const gameDay = getDayFromDate(gameDate);
       options.days.add(gameDay);
     });
 
@@ -49,10 +52,15 @@ export default function FilterPanel({ filters, onFilterChange, games, availabili
       availability.locations.forEach(loc => options.locations.add(loc));
       availability.timeSlots.forEach(slot => options.days.add(slot.day));
       options.genders.add(availability.player.gender);
+      
+      // Add player categories to the options
+      if (availability.player.categories) {
+        availability.player.categories.forEach(cat => options.categories.add(cat));
+      }
     });
 
-    // Also include any locations that are in the current filters
-    filters.locations.forEach(loc => options.locations.add(loc));
+    // Also include any categories that are in the current filters
+    filters.categories.forEach(cat => options.categories.add(cat));
 
     return {
       sports: Array.from(options.sports),
@@ -290,7 +298,10 @@ export default function FilterPanel({ filters, onFilterChange, games, availabili
   );
 }
 
+// Update the getDayFromDate function at the bottom of FilterPanel.tsx
 function getDayFromDate(date: Date): WeekDay {
+  // In Brazil, Sunday is 0, Monday is 1, etc.
   const days: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  return days[date.getDay()];
+  const dayIndex = date.getDay();
+  return days[dayIndex];
 }

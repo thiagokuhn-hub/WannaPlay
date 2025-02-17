@@ -299,9 +299,23 @@ const handleGameClick = (game: GameProposal) => {
         }))
         .sort((a, b) => a.distance - b.distance)[0];
 
+      // Fix: Adjust the date to local timezone
+      const gameDate = new Date(game.date);
+      gameDate.setMinutes(gameDate.getMinutes() + gameDate.getTimezoneOffset());
+      const dayOfWeek = getDayFromDate(gameDate);
+
+      // Debug log
+      console.log('Game date processing:', {
+        originalDate: game.date,
+        adjustedDate: gameDate,
+        dayOfWeek,
+      });
+
       return {
         ...game,
-        distance: closestLocation?.distance || Infinity
+        distance: closestLocation?.distance || Infinity,
+        dateObj: gameDate,
+        dayOfWeek
       };
     });
 
@@ -319,8 +333,8 @@ const handleGameClick = (game: GameProposal) => {
         const categoryMatch = filters.categories.length === 0 || 
           game.requiredCategories.some(cat => filters.categories.includes(cat));
         
-        const dayMatch = filters.days.length === 0 || 
-          filters.days.includes(getDayFromDate(new Date(game.date)));
+        // Use the same day matching logic as FilterPanel
+        const dayMatch = filters.days.length === 0 || filters.days.includes(game.dayOfWeek);
         
         const genderMatch = filters.genders.length === 0 || 
           filters.genders.includes(game.gender);
@@ -329,7 +343,8 @@ const handleGameClick = (game: GameProposal) => {
           filters.sports.includes(game.sport);
 
         return locationMatch && categoryMatch && dayMatch && genderMatch && sportMatch;
-      });
+      })
+      .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
   };
 
   const filterAvailabilities = (availabilities: Availability[]) => {
@@ -337,6 +352,14 @@ const handleGameClick = (game: GameProposal) => {
     today.setHours(0, 0, 0, 0);
 
     const availabilitiesWithDistance = availabilities.map(availability => {
+      // More detailed debug log for player object
+      console.log('Full player data:', {
+        id: availability.id,
+        player: JSON.stringify(availability.player, null, 2),
+        sports: availability.sports,
+        status: availability.status
+      });
+
       const closestLocation = availability.locations
         .map(locId => locations.find(l => l.id === locId))
         .filter(loc => loc !== undefined)
@@ -374,7 +397,47 @@ const handleGameClick = (game: GameProposal) => {
         const sportMatch = filters.sports.length === 0 || 
           availability.sports.some(sport => filters.sports.includes(sport));
 
-        return locationMatch && dayMatch && genderMatch && sportMatch;
+        // Debug log for category matching
+        console.log('Category filtering:', {
+          availabilityId: availability.id,
+          player: availability.player,
+          playerPadelCategory: availability.player.padel_category,
+          playerBeachCategory: availability.player.beach_tennis_category,
+          filterCategories: filters.categories,
+          sports: availability.sports
+        });
+
+        // Modified category matching logic to check sport-specific categories
+        const categoryMatch = filters.categories.length === 0 || 
+          (availability.sports.includes('padel') && 
+           availability.player.padel_category && 
+           filters.categories.includes(availability.player.padel_category)) ||
+          (availability.sports.includes('beach-tennis') && // Changed from beach_tennis to beach-tennis
+           availability.player.beach_tennis_category && 
+           filters.categories.includes(availability.player.beach_tennis_category));
+
+        // Add debug log for beach tennis specifically
+        console.log('Beach tennis check:', {
+          availabilityId: availability.id,
+          sports: availability.sports,
+          hasBeachTennis: availability.sports.includes('beach-tennis'),
+          beachCategory: availability.player.beach_tennis_category,
+          filterCategories: filters.categories,
+          matches: availability.player.beach_tennis_category && 
+                  filters.categories.includes(availability.player.beach_tennis_category)
+        });
+
+        // Debug log for filter results
+        console.log('Filter results:', {
+          availabilityId: availability.id,
+          locationMatch,
+          dayMatch,
+          genderMatch,
+          sportMatch,
+          categoryMatch
+        });
+
+        return locationMatch && dayMatch && genderMatch && sportMatch && categoryMatch;
       });
   };
 
