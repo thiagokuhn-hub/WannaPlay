@@ -41,6 +41,18 @@ function App() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
+  // Add this function definition here
+  const getUserNotifications = () => {
+    if (!user) return [];
+    const userNotifications = notifications.filter(notification => notification.user_id === user.id);
+    console.log('Getting user notifications:', {
+      userId: user.id,
+      total: userNotifications.length,
+      notifications: userNotifications
+    });
+    return userNotifications;
+  };
+
   // Debug logging for user
   useEffect(() => {
     if (user) {
@@ -68,16 +80,12 @@ function App() {
         new Date(a.expiresAt) > new Date()
       );
 
-      // Keep track of players we've already matched with
       const matchedPlayerIds = new Set();
 
       for (const otherAvail of otherAvailabilities) {
-        // Skip if we already found a match with this player
         if (matchedPlayerIds.has(otherAvail.player.id)) continue;
 
-        let foundMatch = false;
         for (const userAvail of userAvailabilities) {
-          // Inside the checkForMatches function
           const { timeMatch, locationMatch } = checkAvailabilitiesMatch(
             userAvail,
             otherAvail,
@@ -85,19 +93,19 @@ function App() {
           );
           
           if (timeMatch && locationMatch.isMatch) {
-            const userLocation = locations.find(l => userAvail.locations.includes(l.id))?.name || '';
-            const otherLocation = locations.find(l => otherAvail.locations.includes(l.id))?.name || '';
-          
-            // Check if notification already exists
+            // Check if a notification for this specific availability match already exists
             const { data: existingNotifications } = await supabase
               .from('notifications')
               .select('*')
               .eq('user_id', user.id)
               .eq('type', 'game_match')
-              .eq('message', `Match with availability ${otherAvail.id}`);
+              .eq('availability_id', otherAvail.id) // Add this field to track specific availability matches
+              .single();
           
-            if (!existingNotifications?.length) {
-              // Create notification only if all criteria are met
+            if (!existingNotifications) {
+              const userLocation = locations.find(l => userAvail.locations.includes(l.id))?.name || '';
+              const otherLocation = locations.find(l => otherAvail.locations.includes(l.id))?.name || '';
+              
               const notification = createAvailabilityMatchNotification(
                 otherAvail,
                 user.id,
@@ -115,7 +123,8 @@ function App() {
                   message: notification.message,
                   title: notification.title,
                   read: false,
-                  created_at: new Date().toISOString()
+                  created_at: new Date().toISOString(), // Make sure this is in ISO format
+                  availability_id: otherAvail.id
                 }])
                 .select()
                 .single();
@@ -125,10 +134,8 @@ function App() {
               } else {
                 console.log('New notification created:', savedNotification);
                 setNotifications(prev => [...prev, notification]);
-                // Mark this player as matched
                 matchedPlayerIds.add(otherAvail.player.id);
-                foundMatch = true;
-                break; // Exit the inner loop once we find a match
+                break;
               }
             }
           }
@@ -141,8 +148,20 @@ function App() {
 
   const handleLogin = async (data: { email: string; password: string }) => {
     try {
-      await signIn(data.email, data.password);
-      setShowLogin(false);
+      const result = await signIn(data.email, data.password);
+      if (result.success) {
+        // Fetch all notifications for the user, not just unread ones
+        const { data: notifications } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', result.user.id)
+          .order('created_at', { ascending: false });
+      
+        if (notifications) {
+          setNotifications(notifications);
+        }
+        setShowLogin(false);
+      }
     } catch (error) {
       alert('Erro ao fazer login. Verifique suas credenciais.');
     }
@@ -324,16 +343,105 @@ function App() {
     }
   }, [user, availabilities, games, notifications]);
 
-  const getUserNotifications = () => {
-    if (!user) return [];
-    const userNotifications = notifications.filter(notification => notification.userId === user.id);
-    console.log('Getting user notifications:', {
-      userId: user.id,
-      total: userNotifications.length,
-      notifications: userNotifications
+  // Update the getUserNotifications function
+  
+
+  // Update the debug logging useEffect to use the same function
+  useEffect(() => {
+    console.log('Notification System Debug:', {
+      currentUser: user,
+      availabilities: availabilities.length,
+      games: games.length,
+      notifications: notifications.length
     });
-    return userNotifications;
-  };
+
+    if (user) {
+      const userNotifications = getUserNotifications();
+      console.log('User Notifications:', {
+        total: userNotifications.length,
+        unread: userNotifications.filter(n => !n.read).length,
+        notifications: userNotifications
+      });
+    }
+  }, [user, availabilities, games, notifications]);
+
+  // Remove the first debug logging useEffect (around line 352)
+  // Remove the second getUserNotifications declaration
+  // Keep only this single implementation
+  
+
+  // Keep this useEffect for debug logging
+  useEffect(() => {
+    console.log('Notification System Debug:', {
+      currentUser: user,
+      availabilities: availabilities.length,
+      games: games.length,
+      notifications: notifications.length
+    });
+
+    if (user) {
+      const userNotifications = getUserNotifications();
+      console.log('User Notifications:', {
+        total: userNotifications.length,
+        unread: userNotifications.filter(n => !n.read).length,
+        notifications: userNotifications
+      });
+    }
+  }, [user, availabilities, games, notifications]);
+
+  // Remove all other declarations and keep only this one implementation at the top level
+  
+
+  // Keep only one debug logging useEffect
+  useEffect(() => {
+    console.log('Notification System Debug:', {
+      currentUser: user,
+      availabilities: availabilities.length,
+      games: games.length,
+      notifications: notifications.length
+    });
+
+    if (user) {
+      const userNotifications = getUserNotifications();
+      console.log('User Notifications:', {
+        total: userNotifications.length,
+        unread: userNotifications.filter(n => !n.read).length,
+        notifications: userNotifications
+      });
+    }
+  }, [user, availabilities, games, notifications]);
+
+  // Add this effect after your other useEffects
+  useEffect(() => {
+    if (!user) return;
+  
+    // Subscribe to notifications for the current user
+    const subscription = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setNotifications(prev => [...prev, payload.new]);
+          } else if (payload.eventType === 'UPDATE') {
+            setNotifications(prev => 
+              prev.map(n => n.id === payload.new.id ? payload.new : n)
+            );
+          }
+        }
+      )
+      .subscribe();
+  
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -347,7 +455,7 @@ function App() {
         onLogoutClick={signOut}
         notifications={getUserNotifications()}
         onMarkNotificationAsRead={handleMarkNotificationAsRead}
-        onClearAllNotifications={handleClearAllNotifications}
+        onClearAllNotifications={() => handleClearAllNotifications(user?.id)}
         onAdminPanelClick={() => setShowAdminPanel(true)}
       />
 

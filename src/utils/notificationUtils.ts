@@ -1,5 +1,7 @@
 import { GameProposal, Availability, Notification, Player, Location } from '../types';
 import { isSameDay } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 // Add this interface
 interface LocationMatch {
@@ -72,14 +74,14 @@ export const createAvailabilityMatchNotification = (
     : `nos mesmos horários, porém em local diferente (${otherLocation})`;
 
   return {
-    id: Date.now().toString(),
-    userId,
-    type: 'game_match', // Changed to valid enum value
+    id: crypto.randomUUID(), // Use UUID instead of timestamp
+    user_id: userId,
+    type: 'game_match',
     title: 'Disponibilidade compatível encontrada!',
     message: `${matchedAvailability.player.name} tem disponibilidade para jogar ${
       matchedAvailability.sports.map(sport => sport === 'padel' ? 'Padel' : 'Beach Tennis').join(' ou ')
     } ${locationMessage}.`,
-    createdAt: new Date().toISOString(),
+    created_at: new Date().toISOString(), // Ensure proper ISO format
     read: false
   };
 };
@@ -214,16 +216,41 @@ export const checkAvailabilitiesMatch = (
 export const createGameMatchNotification = (
   game: GameProposal,
   userId: string
-): Notification => ({
-  id: Date.now().toString(),
-  userId,
-  type: 'game_match',
-  title: 'Jogo compatível encontrado!',
-  message: `Um novo jogo de ${game.sport === 'padel' ? 'Padel' : 'Beach Tennis'} foi marcado em um horário que você está disponível.`,
-  gameId: game.id,
-  createdAt: new Date().toISOString(),
-  read: false,
-});
+): Notification => {
+  try {
+    // Add error handling for date parsing
+    const date = game.date ? parseISO(game.date) : new Date();
+    
+    // Format the date using date-fns with Portuguese locale
+    const formattedDate = format(date, "EEEE, d 'de' MMMM 'de' yyyy", {
+      locale: ptBR
+    });
+
+    return {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      type: 'game_match',
+      title: 'Novo Jogo',
+      message: `${game.createdBy.name} adicionou você a um jogo para ${formattedDate}.`,
+      created_at: new Date().toISOString(),
+      read: false,
+      game_id: game.id
+    };
+  } catch (error) {
+    console.error('Error creating game notification:', error);
+    // Fallback message without date if there's an error
+    return {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      type: 'game_match',
+      title: 'Novo Jogo',
+      message: `${game.createdBy.name} adicionou você a um jogo.`,
+      created_at: new Date().toISOString(),
+      read: false,
+      game_id: game.id
+    };
+  }
+};
 
 const getDayFromDate = (date: Date): string => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];

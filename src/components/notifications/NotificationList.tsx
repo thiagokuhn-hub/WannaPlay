@@ -30,7 +30,11 @@ export default function NotificationList({
         <div className="flex items-center gap-2">
           {notifications.length > 0 && (
             <button
-              onClick={onClearAll}
+              onClick={() => {
+                onClearAll();
+                // Optional: close the notification panel after clearing
+                onClose();
+              }}
               className="text-gray-500 hover:text-gray-700 p-2"
               title="Limpar todas"
             >
@@ -63,7 +67,7 @@ export default function NotificationList({
               <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1">
                 <h4 className="font-medium text-gray-900 text-sm md:text-base">{notification.title}</h4>
                 <span className="text-xs text-gray-500 whitespace-nowrap">
-                  {formatRelativeTime(new Date(notification.createdAt))}
+                  {formatRelativeTime(new Date(notification.created_at))} {/* Change createdAt to created_at */}
                 </span>
               </div>
               <p className="text-sm text-gray-600 mt-1 break-words">{notification.message}</p>

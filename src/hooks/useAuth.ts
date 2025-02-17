@@ -118,13 +118,10 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('Attempting to sign in with:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
-      
-      console.log('Auth response:', { data, error });
+      });
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
@@ -137,28 +134,23 @@ export function useAuth() {
       }
 
       if (data.user) {
-        console.log('Fetching user profile for ID:', data.user.id);
-        const { data: profile, error: profileError } = await supabase  // Changed variable names
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*, is_admin')
-          .eq('id', data.user.id)  // Fixed: using data.user.id instead of userId
+          .eq('id', data.user.id)
           .single();
 
-        console.log('Profile response:', { profile, profileError });  // Updated log variables
+        if (profileError) throw profileError;
 
-        if (profileError) throw profileError  // Fixed variable name
-        
-        // Force a state update by creating a new object
-        setUser({ ...profile })  // Using profile instead of userData
-        return { success: true, user: profile }  // Using profile instead of userData
+        return { success: true, user: profile };
       }
       
-      return { success: false, error: 'Login failed' }
+      return { success: false, error: 'Login failed' };
     } catch (error) {
-      console.error('Error signing in:', error)
-      throw error
+      console.error('Error signing in:', error);
+      throw error;
     }
-  }
+  };
 
   const signOut = async () => {
     try {
