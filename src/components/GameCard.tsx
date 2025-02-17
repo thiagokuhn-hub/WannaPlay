@@ -275,17 +275,24 @@ const GameCard: React.FC<GameCardProps> = ({
 
           
           <div className="mt-3 space-y-2">
-            {game.status === 'open' && !isPlayerInGame && !isGameCreator && (
-              <div className="flex gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onJoinGame(game.id);
-                  }}
-                  className="flex-1 bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
-                >
-                  Participar
-                </button>
+            {game.status === 'open' && !isGameCreator && (
+              <div className="flex items-center gap-2">
+                {!isPlayerInGame && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onJoinGame(game.id);
+                    }}
+                    className="flex-1 bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
+                  >
+                    Participar
+                  </button>
+                )}
+                {isPlayerInGame && (
+                  <div className="flex-1 text-center text-sm text-green-600 font-medium">
+                    Você tá dentro!
+                  </div>
+                )}
                 <button
                   onClick={handleInviteClick}
                   className="bg-green-600 text-white py-1.5 px-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm flex items-center gap-1"
@@ -316,11 +323,6 @@ const GameCard: React.FC<GameCardProps> = ({
                   </button>
                 )}
               </>
-            )}
-            {isPlayerInGame && (
-              <div className="text-center text-xs text-green-600 font-medium">
-                Você já está participando deste jogo
-              </div>
             )}
             {!isPlayerInGame && isGameCreator && (
               <div className="text-center text-xs text-blue-600 font-medium">

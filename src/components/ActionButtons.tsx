@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Info, Calendar } from 'lucide-react';
-import { GiTennisBall } from 'react-icons/gi';
+import { Plus, Info } from 'lucide-react';
+// Try one of these imports:
+import { IoGameController } from 'react-icons/io5';  // Option 1: Game controller icon
+import { MdSportsTennis } from 'react-icons/md';    // Option 2: Tennis/Sports icon
+import { FaTableTennis } from 'react-icons/fa';     // Option 3: Table tennis icon
+import { BiSolidGame } from 'react-icons/bi';       // Option 4: Game icon
 import { Player } from '../types';
 import Tutorial from './Tutorial';
 
@@ -25,7 +29,11 @@ export default function ActionButtons({
             onClick={onAddAvailability}
             className="availability-button flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
-            <Calendar className="w-5 h-5" />
+            {/* Choose one of these options: */}
+            <MdSportsTennis className="w-5 h-5" />  {/* Option 2: More modern sports icon */}
+            {/* <FaTableTennis className="w-5 h-5" /> */}  {/* Option 3: Similar to padel */}
+            {/* <IoGameController className="w-5 h-5" /> */}  {/* Option 1: Gaming style */}
+            {/* <BiSolidGame className="w-5 h-5" /> */}  {/* Option 4: Simple game icon */}
             Quero Jogar
           </button>
 

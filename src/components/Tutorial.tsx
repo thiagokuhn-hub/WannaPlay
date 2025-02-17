@@ -25,7 +25,7 @@ export default function Tutorial({ initialDelay = 5000, force = false, onClose }
   const steps: Step[] = [
     {
       target: '.availability-button',
-      content: 'Bem vindo ao QueroJogar! Neste botão você diz em que dias e horários você pode jogar durante a semana assim outros jogadores podem saber e te contatar.',
+      content: 'Bem vindo ao QueroJogar! Neste botão você diz em que dias e horários na semana você pode jogar, assim outros jogadores podem saber e te contatar.',
       placement: 'bottom',
       disableBeacon: true
     },
@@ -36,18 +36,18 @@ export default function Tutorial({ initialDelay = 5000, force = false, onClose }
     },
     {
       target: '.games-section',  // Changed from '.games-list' to '.games-section'
-      content: 'Área de jogos disponíveis: Aqui você encontra todos jogos que estão esperando jogadores.',
+      content: 'Aqui você encontra todos jogos que estão esperando jogadores e pode convidar jogadores para fechar os jogos',
       placement: 'top',
       disableBeacon: true
     },
     {
       target: '.availability-section',
-      content: 'Área de disponibilidade: Aqui você consegue visualizar os jogadores que estão querendo jogar. Mas lembre de usar o filtro para facilitar a busca.',
+      content: 'Aqui você consegue visualizar os jogadores que estão querendo jogar. Mas lembre-se de usar o filtro para facilitar a busca.',
       placement: 'right'
     },
     {
       target: '.filter-button',
-      content: 'Use o filtro para localizar mais facilmente o que procura.',
+      content: 'Use o filtro para facilita a busca!',
       placement: 'bottom'
     }
   ];
