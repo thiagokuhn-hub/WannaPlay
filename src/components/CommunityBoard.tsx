@@ -30,6 +30,7 @@ interface CommunityBoardProps {
   onDeleteAvailability: (availabilityId: string) => Promise<void>;
   onRegisterPrompt: () => void;
   onRemovePlayer: (gameId: string, playerId: string) => Promise<void>;
+  onInvitePlayer?: (gameId: string, playerId: string) => Promise<void>;
 }
 
 export default function CommunityBoard({
@@ -46,7 +47,8 @@ export default function CommunityBoard({
   onEditAvailability,
   onDeleteAvailability,
   onRegisterPrompt,
-  onRemovePlayer
+  onRemovePlayer,
+  onInvitePlayer
 }: CommunityBoardProps) {
   //console.log('CommunityBoard locations:', locations);  // Add this line here
   const { latitude, longitude, error } = useGeolocation();
@@ -103,6 +105,11 @@ export default function CommunityBoard({
       }
     );
   };
+
+  // Add this after handleJoinGameClick and before handleMarkComplete
+const handleGameClick = (game: GameProposal) => {
+  setSelectedGame(game);
+};
 
   const handleMarkComplete = (gameId: string) => {
     const game = games.find(g => g.id === gameId);
@@ -261,6 +268,20 @@ export default function CommunityBoard({
         alert('Erro ao remover jogador. Por favor, tente novamente.');
       }
     };
+
+  const handleInvitePlayer = async (gameId: string, playerId: string) => {
+    if (!onInvitePlayer) {
+      console.error('onInvitePlayer function is not defined');
+      return;
+    }
+
+    try {
+      await onInvitePlayer(gameId, playerId);
+    } catch (error) {
+      console.error('Error inviting player:', error);
+      alert('Erro ao convidar jogador. Por favor, tente novamente.');
+    }
+  };
 
   const filterGames = (games: GameProposal[]) => {
     const today = new Date();
@@ -426,6 +447,7 @@ export default function CommunityBoard({
           ) : (
             <>
               {filteredGames.length > 0 && (
+                // Replace the games section with this corrected version
                 <div className="games-section">
                   <h2 className="text-2xl font-bold text-gray-900 mb-4">Jogos Disponíveis</h2>
                   <div className="games-list grid gap-6 grid-cols-1 md:grid-cols-2">
@@ -433,12 +455,15 @@ export default function CommunityBoard({
                       <GameCard
                         key={game.id}
                         game={game}
-                        currentUser={currentUser}
-                        onGameClick={(game) => setSelectedGame(game)}
                         onJoinGame={handleJoinGameClick}
+                        currentUser={currentUser}
+                        onRemovePlayer={onRemovePlayer}
+                        locations={locations}
+                        onGameClick={handleGameClick}
                         onMarkComplete={handleMarkComplete}
                         onAddPlayerDirectly={handleAddPlayerDirectly}
-                        locations={locations}
+                        onInvitePlayer={handleInvitePlayer}  // Update this line
+                        onRegisterPrompt={onRegisterPrompt}
                       />
                     ))}
                   </div>

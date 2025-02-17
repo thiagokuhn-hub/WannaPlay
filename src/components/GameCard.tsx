@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';  // Add useEffect import
-import { Calendar, Clock, MapPin, Users, Trophy, UserPlus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Trophy, UserPlus, Send } from 'lucide-react';
 import { GiTennisBall } from 'react-icons/gi';
 import { v4 as uuidv4 } from 'uuid';  // Add this import
 import { GameProposal, Player, Location } from '../types';
@@ -7,6 +7,7 @@ import { getStatusColor, getStatusText, getGameGenderLabel } from '../utils/form
 import { formatGameDate } from '../utils/dateUtils';
 import AddPlayerDirectlyModal from './AddPlayerDirectlyModal';
 import { supabase } from '../lib/supabase';
+import InvitePlayerModal from './InvitePlayerModal';
 
 // Add locations to the props interface
 interface GameCardProps {
@@ -18,6 +19,8 @@ interface GameCardProps {
   onGameClick?: (game: GameProposal) => void;
   onMarkComplete?: (gameId: string) => void;
   onAddPlayerDirectly?: (gameId: string, player: Omit<Player, 'id' | 'email' | 'password'>) => void;
+  onInvitePlayer: (gameId: string, playerId: string) => void;
+  onRegisterPrompt?: () => void;
 }
 
 const GameCard: React.FC<GameCardProps> = ({
@@ -28,10 +31,24 @@ const GameCard: React.FC<GameCardProps> = ({
   locations,
   onGameClick,
   onMarkComplete,
-  onAddPlayerDirectly
+  onAddPlayerDirectly,
+  onInvitePlayer,
+  onRegisterPrompt // Add this prop to the destructuring
 }) => {
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
-  
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
+  // Add handleInviteClick here, with other handler functions
+  const handleInviteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      alert('Você precisa estar logado para convidar outros jogadores. Por favor, faça login ou cadastre-se.');
+      onRegisterPrompt?.();
+      return;
+    }
+    setShowInviteModal(true);
+  };
+
   // Debug game ID format
   useEffect(() => {
     console.log("Game data received:", {
@@ -256,18 +273,27 @@ const GameCard: React.FC<GameCardProps> = ({
             </div>
           </div>
 
+          
           <div className="mt-3 space-y-2">
-           
             {game.status === 'open' && !isPlayerInGame && !isGameCreator && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onJoinGame(game.id); // Changed from onJoinClick to onJoinGame
-                }}
-                className="w-full bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
-              >
-                Participar
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onJoinGame(game.id);
+                  }}
+                  className="flex-1 bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
+                >
+                  Participar
+                </button>
+                <button
+                  onClick={handleInviteClick}
+                  className="bg-green-600 text-white py-1.5 px-3 rounded-lg hover:bg-green-700 transition-colors duration-200 text-sm flex items-center gap-1"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Convidar
+                </button>
+              </div>
             )}
             {isGameCreator && game.status === 'open' && (
               <>
@@ -313,8 +339,18 @@ const GameCard: React.FC<GameCardProps> = ({
         gameId={gameId}
         currentUser={currentUser}
       />
+
+      <InvitePlayerModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onInvite={(playerId) => {
+          onInvitePlayer(gameId, playerId);
+          setShowInviteModal(false);
+        }}
+        currentUser={currentUser}
+      />
     </>
   );
 }
-// Add this line at the end of the file
+
 export default GameCard;

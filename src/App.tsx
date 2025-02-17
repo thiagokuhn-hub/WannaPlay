@@ -324,124 +324,66 @@ function App() {
     );
   };
 
-  // Add debug logging for notifications
-  useEffect(() => {
-    console.log('Notification System Debug:', {
-      currentUser: user,
-      availabilities: availabilities.length,
-      games: games.length,
-      notifications: notifications.length
-    });
-
-    if (user) {
-      const userNotifications = notifications.filter(n => n.userId === user.id);
-      console.log('User Notifications:', {
-        total: userNotifications.length,
-        unread: userNotifications.filter(n => !n.read).length,
-        notifications: userNotifications
+  // Add handleGameInvitation here, before the return statement
+  // Update the handleGameInvitation function
+  const handleGameInvitation = async (gameId: string, playerId: string) => {
+    try {
+      const game = games.find(g => g.id === gameId);
+      if (!game || !user) return;
+  
+      // Get location names
+      const gameLocations = game.locations
+        .map(locId => locations.find(l => l.id === locId)?.name)
+        .filter(Boolean)
+        .join(', ');
+  
+      // Format date and time
+      const gameDate = new Date(game.date);
+      const formattedDate = gameDate.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
       });
-    }
-  }, [user, availabilities, games, notifications]);
-
-  // Update the getUserNotifications function
+      
+      // Parse the time strings correctly
+      const startTime = typeof game.startTime === 'string' ? 
+        new Date(`${game.date}T${game.startTime}`) : 
+        new Date(game.startTime);
+      
+      const endTime = typeof game.endTime === 'string' ? 
+        new Date(`${game.date}T${game.endTime}`) : 
+        new Date(game.endTime);
   
-
-  // Update the debug logging useEffect to use the same function
-  useEffect(() => {
-    console.log('Notification System Debug:', {
-      currentUser: user,
-      availabilities: availabilities.length,
-      games: games.length,
-      notifications: notifications.length
-    });
-
-    if (user) {
-      const userNotifications = getUserNotifications();
-      console.log('User Notifications:', {
-        total: userNotifications.length,
-        unread: userNotifications.filter(n => !n.read).length,
-        notifications: userNotifications
+      const formattedStartTime = startTime.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false
       });
-    }
-  }, [user, availabilities, games, notifications]);
-
-  // Remove the first debug logging useEffect (around line 352)
-  // Remove the second getUserNotifications declaration
-  // Keep only this single implementation
-  
-
-  // Keep this useEffect for debug logging
-  useEffect(() => {
-    console.log('Notification System Debug:', {
-      currentUser: user,
-      availabilities: availabilities.length,
-      games: games.length,
-      notifications: notifications.length
-    });
-
-    if (user) {
-      const userNotifications = getUserNotifications();
-      console.log('User Notifications:', {
-        total: userNotifications.length,
-        unread: userNotifications.filter(n => !n.read).length,
-        notifications: userNotifications
+      
+      const formattedEndTime = endTime.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false
       });
+  
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: playerId,
+          type: 'game_match',
+          title: 'Convite para Jogo',
+          message: `${user.name} convidou você para um jogo de ${game.sport === 'padel' ? 'Padel' : 'Beach Tennis'} no dia ${formattedDate}, das ${formattedStartTime} às ${formattedEndTime}, em ${gameLocations}.`,
+          game_id: gameId,
+          created_at: new Date().toISOString(),
+          read: false
+        });
+  
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error sending game invitation:', error);
+      alert('Erro ao enviar convite. Tente novamente.');
     }
-  }, [user, availabilities, games, notifications]);
-
-  // Remove all other declarations and keep only this one implementation at the top level
-  
-
-  // Keep only one debug logging useEffect
-  useEffect(() => {
-    console.log('Notification System Debug:', {
-      currentUser: user,
-      availabilities: availabilities.length,
-      games: games.length,
-      notifications: notifications.length
-    });
-
-    if (user) {
-      const userNotifications = getUserNotifications();
-      console.log('User Notifications:', {
-        total: userNotifications.length,
-        unread: userNotifications.filter(n => !n.read).length,
-        notifications: userNotifications
-      });
-    }
-  }, [user, availabilities, games, notifications]);
-
-  // Add this effect after your other useEffects
-  useEffect(() => {
-    if (!user) return;
-  
-    // Subscribe to notifications for the current user
-    const subscription = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setNotifications(prev => [...prev, payload.new]);
-          } else if (payload.eventType === 'UPDATE') {
-            setNotifications(prev => 
-              prev.map(n => n.id === payload.new.id ? payload.new : n)
-            );
-          }
-        }
-      )
-      .subscribe();
-  
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [user]);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -475,6 +417,7 @@ function App() {
           onDeleteAvailability={handleDeleteAvailability}
           onRegisterPrompt={handleRegisterPrompt}
           onRemovePlayer={handleRemovePlayer}
+          onInvitePlayer={handleGameInvitation} // Make sure this is properly passed
         />
       </main>
 

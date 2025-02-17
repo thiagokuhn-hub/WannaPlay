@@ -72,7 +72,7 @@ export default function JoinGameModal({
               rows={4}
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              placeholder="Adicione uma mensagem para os outros jogadores..."
+              placeholder="Quer deixar alguma mensagem para os outros jogadores? OPCIONAL"
             />
           </div>
 
