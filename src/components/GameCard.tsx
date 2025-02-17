@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';  // Add useEffect import
+import React, { useState } from 'react';  // Keep only useState import
 import { Calendar, Clock, MapPin, Users, Trophy, UserPlus, Send } from 'lucide-react';
 import { GiTennisBall } from 'react-icons/gi';
 import { v4 as uuidv4 } from 'uuid';  // Add this import
@@ -8,6 +8,8 @@ import { formatGameDate } from '../utils/dateUtils';
 import AddPlayerDirectlyModal from './AddPlayerDirectlyModal';
 import { supabase } from '../lib/supabase';
 import InvitePlayerModal from './InvitePlayerModal';
+import RegistrationPrompt from './RegistrationPrompt';
+import LoginForm from './LoginForm';
 
 // Add locations to the props interface
 interface GameCardProps {
@@ -33,32 +35,45 @@ const GameCard: React.FC<GameCardProps> = ({
   onMarkComplete,
   onAddPlayerDirectly,
   onInvitePlayer,
-  onRegisterPrompt // Add this prop to the destructuring
+  onRegisterPrompt
 }) => {
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
 
-  // Add handleInviteClick here, with other handler functions
+  // Add handleJoinClick function
+  const handleJoinClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      setShowRegistrationPrompt(true);
+      return;
+    }
+    onJoinGame(game.id, '');
+  };
+
   const handleInviteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser) {
-      alert('Você precisa estar logado para convidar outros jogadores. Por favor, faça login ou cadastre-se.');
-      onRegisterPrompt?.();
+      setShowRegistrationPrompt(true);
       return;
     }
     setShowInviteModal(true);
   };
 
-  // Debug game ID format
-  useEffect(() => {
-    console.log("Game data received:", {
-      id: game.id,
-      type: typeof game.id,
-      isValidUUID: /^[0-9a-fA-F-]{36}$/.test(game.id)
-    });
-  }, [game]);
+  // Add these handlers
+  const handleRegistrationClick = () => {
+    setShowRegistrationPrompt(false);
+    onRegisterPrompt?.();
+  };
+
+  const handleLoginClick = () => {
+    setShowRegistrationPrompt(false);
+    setShowLoginForm(true);
+  };
 
   // Ensure game.id is a string
+  // Remove both debug useEffects and keep only the essential code
   const gameId = typeof game.id === 'string' ? game.id : String(game.id);
 
   const isPlayerInGame = currentUser && game.players.some(player => player.id === currentUser.id);
@@ -72,12 +87,8 @@ const GameCard: React.FC<GameCardProps> = ({
   };
 
   const handleAddPlayer = async (player: Omit<Player, 'id' | 'email' | 'password'>) => {
+    // Simple validation without debug logging
     if (!/^[0-9a-fA-F-]{36}$/.test(gameId)) {
-      console.error("Invalid game ID format:", {
-        originalId: game.id,
-        processedId: gameId,
-        type: typeof gameId
-      });
       return;
     }
 
@@ -133,38 +144,8 @@ const GameCard: React.FC<GameCardProps> = ({
     }
   };
 
-  // Function to get location names from IDs
-  // Add this debug effect
-  useEffect(() => {
-    console.log('Game and Locations Debug:', {
-      game: {
-        id: game.id,
-        location_id: game.location_id,
-        locationId: game.locationId,
-        location: game.location,
-        locationIds: game.locationIds,
-        locations: game.locations, // Add this line to check if it's using 'locations'
-      },
-      availableLocations: locations?.map(loc => ({
-        id: loc.id,
-        name: loc.name
-      }))
-    });
-    console.log('Detailed Game Debug:', {
-      game: {
-        id: game.id,
-        sport: game.sport,
-        requiredCategories: game.requiredCategories,
-        required_categories: game.required_categories,
-        players: game.players
-      },
-      locations, // Use locations instead of availableLocations
-      rawGame: game
-    });
-  }, [game, locations]);
-
+  // Remove the useEffect block and keep only the location functions
   const getLocationNames = () => {
-    // Check if game.locations is an array and use it
     if (Array.isArray(game.locations) && game.locations.length > 0) {
       return game.locations.map(locationId => {
         const location = locations?.find(loc => loc.id === locationId);
@@ -172,7 +153,6 @@ const GameCard: React.FC<GameCardProps> = ({
       }).filter(Boolean).join(' / ');
     }
 
-    // Fallback to single location if array is not available
     const locationId = game.location_id || 
                       game.locationId || 
                       game.location || 
@@ -279,10 +259,7 @@ const GameCard: React.FC<GameCardProps> = ({
               <div className="flex items-center gap-2">
                 {!isPlayerInGame && (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onJoinGame(game.id);
-                    }}
+                    onClick={handleJoinClick}
                     className="flex-1 bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
                   >
                     Participar
@@ -350,6 +327,31 @@ const GameCard: React.FC<GameCardProps> = ({
           setShowInviteModal(false);
         }}
         currentUser={currentUser}
+      />
+
+      <RegistrationPrompt
+        isOpen={showRegistrationPrompt}
+        onClose={() => setShowRegistrationPrompt(false)}
+        onRegister={handleRegistrationClick}
+        onLogin={handleLoginClick}
+        message="Para participar de um jogo, é necessário criar uma conta."  // Updated message
+      />
+
+      <LoginForm
+        isOpen={showLoginForm}
+        onClose={() => setShowLoginForm(false)}
+        onSubmit={async (data) => {
+          try {
+            await handleLogin(data);
+            setShowLoginForm(false);
+          } catch (error) {
+            console.error('Login failed:', error);
+          }
+        }}
+        onRegisterClick={() => {
+          setShowLoginForm(false);
+          onRegisterPrompt?.();
+        }}
       />
     </>
   );

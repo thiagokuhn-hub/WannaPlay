@@ -6,6 +6,7 @@ interface RegistrationPromptProps {
   isOpen: boolean;
   onClose: () => void;
   onRegister: () => void;
+  onLogin: () => void;  // Add this prop
   message?: string;
 }
 
@@ -13,6 +14,7 @@ export default function RegistrationPrompt({
   isOpen,
   onClose,
   onRegister,
+  onLogin,  // Add this prop
   message = "Para acessar todos os recursos do aplicativo, é necessário criar uma conta."
 }: RegistrationPromptProps) {
   return (
@@ -57,6 +59,12 @@ export default function RegistrationPrompt({
               className="px-4 py-2 text-gray-600 hover:text-gray-900"
             >
               Agora não
+            </button>
+            <button
+              onClick={onLogin}
+              className="px-4 py-2 text-blue-600 hover:text-blue-700"
+            >
+              Fazer login
             </button>
             <button
               onClick={onRegister}
