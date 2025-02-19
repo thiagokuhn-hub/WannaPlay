@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import InvitePlayerModal from './InvitePlayerModal';
 import RegistrationPrompt from './RegistrationPrompt';
 import LoginForm from './LoginForm';
+import { validatePlayerCategory } from '../utils/categoryValidation';  // Add this import
 
 // Add locations to the props interface
 interface GameCardProps {
@@ -43,14 +44,27 @@ const GameCard: React.FC<GameCardProps> = ({
   const [showLoginForm, setShowLoginForm] = useState(false);
 
   // Add handleJoinClick function
-  const handleJoinClick = (e: React.MouseEvent) => {
+  const handleJoinClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser) {
       setShowRegistrationPrompt(true);
       return;
     }
-    onJoinGame(game.id, '');
+
+    try {
+      const validation = validatePlayerCategory(game, currentUser);
+      if (!validation.isValid) {
+        alert(validation.message);
+        return;
+      }
+      onJoinGame(game.id, '');
+    } catch (error) {
+      console.error('Error validating player category:', error);
+      alert('Erro ao validar categoria do jogador');
+    }
   };
+
+  
 
   const handleInviteClick = (e: React.MouseEvent) => {
     e.stopPropagation();

@@ -132,6 +132,7 @@ export function useGames() {
       }
   
       // If validation passes, proceed with joining the game
+      // Remove the validation here since it's already done before showing the modal
       if (!player.isTemporary) {
         const { error } = await supabase
           .from('game_players')

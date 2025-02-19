@@ -194,13 +194,91 @@ export function useAuth() {
     }
   };
 
+  
+
+  // Single implementation of signInWithGoogle
+  const signInWithGoogle = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+  
+      if (error) throw error;
+    
+      // Get user data after successful sign in
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+  
+      if (session?.user) {
+        // Get user metadata which includes the picture
+        const googleData = session.user.user_metadata;
+        const avatarUrl = googleData.picture || googleData.avatar_url;
+  
+        console.log('Avatar URL:', avatarUrl); // Debug log
+  
+        // First check if profile exists
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+  
+        // Update or create profile with Google avatar
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: session.user.id,
+            avatar: avatarUrl,
+            name: googleData.full_name || googleData.name,
+            email: session.user.email,
+            updated_at: new Date().toISOString(),
+            // Preserve existing data if profile exists
+            ...(existingProfile && {
+              phone: existingProfile.phone,
+              playing_side: existingProfile.playing_side,
+              gender: existingProfile.gender,
+              padel_category: existingProfile.padel_category,
+              beach_tennis_category: existingProfile.beach_tennis_category,
+              cep: existingProfile.cep
+            }),
+            // Set defaults for new profiles
+            ...(!existingProfile && {
+              playing_side: 'both',
+              gender: 'other',
+              created_at: new Date().toISOString()
+            })
+          }, {
+            onConflict: 'id'
+          });
+  
+        if (updateError) throw updateError;
+  
+        // Fetch updated user data
+        await fetchUser(session.user.id);
+      }
+    
+      return data;
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      throw error;
+    }
+  };
+
+  // Add signInWithGoogle to the returned object
   return {
     user,
     loading,
     signIn,
     signUp,
     signOut,
-    setUser,
-    updateProfile,  // Add this line
-  }
+    updateProfile,
+    signInWithGoogle // Add this
+  };
 }

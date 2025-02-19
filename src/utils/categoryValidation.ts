@@ -26,7 +26,8 @@ export const validatePlayerCategory = (game: GameProposal, player: Player): { is
     }
   }
 
-  if (game.sport === 'beach_tennis') {
+  // Fix the sport check for Beach Tennis
+  if (game.sport === 'beach-tennis') {
     if (!player.beach_tennis_category) {
       return {
         isValid: false,

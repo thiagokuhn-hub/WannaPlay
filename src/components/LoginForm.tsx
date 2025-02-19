@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { LogIn } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc'; // Add this import
+
 import Modal from './modals/Modal';
 import { useAuth } from '../hooks/useAuth';
 
@@ -11,12 +13,14 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ isOpen, onClose, onSubmit, onRegisterClick }: LoginFormProps) {
+  const { signInWithGoogle } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +38,19 @@ export default function LoginForm({ isOpen, onClose, onSubmit, onRegisterClick }
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      setGoogleLoading(true);
+      setError(null);
+      await signInWithGoogle();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer login com Google');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -47,6 +64,29 @@ export default function LoginForm({ isOpen, onClose, onSubmit, onRegisterClick }
           </div>
         )}
         
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:bg-gray-100 disabled:text-gray-400"
+        >
+          {googleLoading ? (
+            <span className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400"></span>
+          ) : (
+            <FcGoogle className="w-5 h-5" />
+          )}
+          {googleLoading ? 'Entrando...' : 'Entrar com Google'}
+        </button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">ou</span>
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Email
