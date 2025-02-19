@@ -121,7 +121,6 @@ export const checkAvailabilitiesMatch = (
 ): { timeMatch: boolean; locationMatch: LocationMatch } => {
   // 1. First check sport and category match
   if (!newAvailability.sports.some(sport => existingAvailability.sports.includes(sport))) {
-    console.log('Sports do not match');
     return { 
       timeMatch: false, 
       locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
@@ -138,7 +137,6 @@ export const checkAvailabilitiesMatch = (
     const existingCat = existingAvailability.player.padel_category;
     
     if (newCat !== existingCat) {
-      console.log('Padel categories do not match:', { newCat, existingCat });
       return { 
         timeMatch: false, 
         locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
@@ -149,7 +147,6 @@ export const checkAvailabilitiesMatch = (
     const existingCat = existingAvailability.player.beach_tennis_category;
     
     if (newCat !== existingCat) {
-      console.log('Beach Tennis categories do not match:', { newCat, existingCat });
       return { 
         timeMatch: false, 
         locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
@@ -162,7 +159,6 @@ export const checkAvailabilitiesMatch = (
     existingAvailability.locations.includes(loc)
   );
   if (!hasCommonLocation) {
-    console.log('No common locations');
     return { 
       timeMatch: false, 
       locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
@@ -172,22 +168,16 @@ export const checkAvailabilitiesMatch = (
   // 3 & 4. Check day and time match
   const timeMatch = newAvailability.timeSlots.some(newSlot => 
     existingAvailability.timeSlots.some(existingSlot => {
-      // Check if days match
       if (newSlot.day !== existingSlot.day) return false;
-
-      // Convert times to minutes for comparison
       const newStart = timeToMinutes(newSlot.startTime);
       const newEnd = timeToMinutes(newSlot.endTime);
       const existingStart = timeToMinutes(existingSlot.startTime);
       const existingEnd = timeToMinutes(existingSlot.endTime);
-
-      // Check if time slots overlap
       return newStart >= existingStart && newEnd <= existingEnd;
     })
   );
 
   if (!timeMatch) {
-    console.log('Time slots do not match');
     return { 
       timeMatch: false, 
       locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 
@@ -196,7 +186,6 @@ export const checkAvailabilitiesMatch = (
 
   // 5. Check gender match
   if (newAvailability.player.gender !== existingAvailability.player.gender) {
-    console.log('Gender does not match');
     return { 
       timeMatch: false, 
       locationMatch: { isMatch: false, nearbyLocations: [], distance: Infinity } 

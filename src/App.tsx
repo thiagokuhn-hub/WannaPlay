@@ -42,30 +42,22 @@ function App() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   // Add this function definition here
+  // Modify getUserNotifications function
   const getUserNotifications = () => {
     if (!user) return [];
-    const userNotifications = notifications.filter(notification => notification.user_id === user.id);
-    console.log('Getting user notifications:', {
-      userId: user.id,
-      total: userNotifications.length,
-      notifications: userNotifications
-    });
-    return userNotifications;
+    return notifications.filter(notification => notification.user_id === user.id);
   };
 
-  // Debug logging for user
+  // Remove debug logging for user
   useEffect(() => {
     if (user) {
-      console.log('Current user admin status:', user.is_admin);
-      console.log('Full user data:', user);
+      // User is authenticated, no need for debug logs
     }
   }, [user]);
 
-  // Add availability matching effect
+  // Modify availability matching effect
   useEffect(() => {
     if (!user || !availabilities.length || !locations.length) return;
-
-    console.log('Starting availability match check');
 
     const checkForMatches = async () => {
       const userAvailabilities = availabilities.filter(a => 
