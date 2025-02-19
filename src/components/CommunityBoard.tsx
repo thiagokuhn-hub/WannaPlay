@@ -82,17 +82,33 @@ export default function CommunityBoard({
   };
 
   const handleProposeGame = () => {
-    handleActionWithAuth(
-      'propor um jogo',
-      () => setShowGameForm(true)
-    );
+    if (!currentUser) {
+      setRegistrationMessage(`Para propor um jogo, é necessário criar uma conta.`);
+      setShowRegistrationPrompt(true);
+      return;
+    }
+
+    if (!currentUser.phone?.trim() || (!currentUser.padel_category && !currentUser.beach_tennis_category)) {
+      alert('Por favor, complete seu cadastro com telefone e categoria antes de propor um jogo.');
+      return;
+    }
+
+    setShowGameForm(true);
   };
 
   const handleAddAvailability = () => {
-    handleActionWithAuth(
-      'adicionar disponibilidade',
-      () => setShowAvailabilityForm(true)
-    );
+    if (!currentUser) {
+      setRegistrationMessage(`Para adicionar disponibilidade, é necessário criar uma conta.`);
+      setShowRegistrationPrompt(true);
+      return;
+    }
+
+    if (!currentUser.phone?.trim() || (!currentUser.padel_category && !currentUser.beach_tennis_category)) {
+      alert('Por favor, complete seu cadastro com telefone e categoria antes de adicionar uma disponibilidade.');
+      return;
+    }
+
+    setShowAvailabilityForm(true);
   };
 
   const handleJoinGameClick = (gameId: string) => {

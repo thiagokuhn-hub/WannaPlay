@@ -87,6 +87,11 @@ export default function AvailabilityCard({
     return categories.length > 0 ? categories.join(' • ') : 'Sem categoria';
   };
 
+  const formatPhoneNumber = (phone: string | null) => {
+    if (!phone) return '';
+    return phone.replace(/\D/g, '');
+  };
+
   return (
     <div className={`rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow ${
       availability.sports.length === 1 
@@ -179,14 +184,16 @@ export default function AvailabilityCard({
         )}
 
         <div className="text-xs text-gray-600">
-          Whatsapp: <a 
-            href={formatPhoneToWhatsApp(availability.player.phone)} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-blue-600 hover:text-blue-800"
-          >
-            {availability.player.phone}
-          </a>
+          {availability.player.phone && (
+            <a 
+              href={`https://wa.me/55${formatPhoneNumber(availability.player.phone)}`}
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-blue-600 hover:text-blue-800"
+            >
+              {availability.player.phone}
+            </a>
+          )}
         </div>
 
         <div className="text-xs text-gray-500 flex items-center">

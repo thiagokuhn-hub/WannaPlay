@@ -6,49 +6,66 @@ export function useAuth() {
   const [user, setUser] = useState<Player | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        fetchUser(session.user.id)
-      } else {
-        setLoading(false)
-      }
-    })
-
-    // Listen for changes on auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        fetchUser(session.user.id)
-      } else {
-        setUser(null)
-        setLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
   const fetchUser = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, is_admin')  // Make sure is_admin is included
+        .select('*, is_admin')
         .eq('id', userId)
-        .single()
-
-      if (error) throw error
-      // Remove debug log
-      setUser({
-        ...data,
-        isAdmin: data.is_admin
-      })
+        .single();
+    
+      if (error) {
+        console.error('Error fetching user:', error);
+        setLoading(false);
+        return null;
+      }
+    
+      setUser(data);
+      setLoading(false);
+      return data;
     } catch (error) {
-      console.error('Error fetching user:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error fetching user:', error);
+      setLoading(false);
+      return null;
     }
-  }
+  };
+
+  useEffect(() => {
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        fetchUser(session.user.id);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    // Listen for changes on auth state
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        fetchUser(session.user.id);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Remove this problematic useEffect
+  // useEffect(() => {
+  //   if (session?.user) {
+  //     fetchUser(session.user.id).then(userData => {
+  //       if (userData) {
+  //         setUser(userData);
+  //       }
+  //     });
+  //   } else {
+  //     setUser(null);
+  //   }
+  // }, [session]);
 
   const signUp = async (userData: Omit<Player, 'id'>) => {
     try {
