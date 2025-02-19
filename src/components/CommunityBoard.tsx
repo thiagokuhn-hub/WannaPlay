@@ -11,6 +11,7 @@ import ActionButtons from './ActionButtons';
 import GameCard from './GameCard';
 import JoinGameModal from './JoinGameModal';
 import RegistrationPrompt from './RegistrationPrompt';
+import LoginForm from './LoginForm';  // Add this import
 import { getDayFromDate } from '../utils/dateUtils';
 import { useGeolocation } from '../hooks/useGeolocation';
 import LoadingSkeleton from './LoadingSkeleton';
@@ -64,6 +65,9 @@ export default function CommunityBoard({
   const [registrationMessage, setRegistrationMessage] = useState('');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [availabilityToDelete, setAvailabilityToDelete] = useState<string | null>(null);
+    // Add this with other state declarations (around line 50)
+  const [showLoginForm, setShowLoginForm] = useState(false);
+
   const [filters, setFilters] = useState<Filters>({
     sports: [],
     locations: [],
@@ -565,11 +569,30 @@ const handleGameClick = (game: GameProposal) => {
         <RegistrationPrompt
           isOpen={showRegistrationPrompt}
           onClose={() => setShowRegistrationPrompt(false)}
-          onRegister={() => {
-            onRegisterPrompt();
+          onLogin={() => {
             setShowRegistrationPrompt(false);
+            setShowLoginForm(true);  // Show LoginForm instead of going to registration
           }}
           message={registrationMessage}
+        />
+      )}
+
+      {showLoginForm && (
+        <LoginForm
+          isOpen={showLoginForm}
+          onClose={() => setShowLoginForm(false)}
+          onSubmit={async (data) => {
+            try {
+              // Handle login logic here
+              setShowLoginForm(false);
+            } catch (error) {
+              console.error('Login failed:', error);
+            }
+          }}
+          onRegisterClick={() => {
+            setShowLoginForm(false);
+            onRegisterPrompt();
+          }}
         />
       )}
 

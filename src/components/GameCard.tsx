@@ -348,7 +348,7 @@ const GameCard: React.FC<GameCardProps> = ({
         onClose={() => setShowRegistrationPrompt(false)}
         onRegister={handleRegistrationClick}
         onLogin={handleLoginClick}
-        message="Para participar de um jogo, é necessário criar uma conta."  // Updated message
+        message="Para interagir com os jogos, é necessário criar uma conta."
       />
 
       <LoginForm

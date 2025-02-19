@@ -44,12 +44,13 @@ export default function JoinGameModal({
         title="Criar uma conta?"
       >
         <RegistrationPrompt
+          isOpen={isOpen}
           onClose={onClose}
-          onRegister={() => {
+          onLogin={() => {
             onRegisterPrompt();
             onClose();
           }}
-          onContinue={() => setShowRegistrationPrompt(false)}
+          message="Para participar de um jogo, é necessário criar uma conta."
         />
       </Modal>
     );
