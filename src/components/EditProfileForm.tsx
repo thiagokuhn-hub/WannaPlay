@@ -110,8 +110,20 @@ export default function EditProfileForm({
     }
   };
 
+  // Add state for sports selection error
+  const [sportSelectionError, setSportSelectionError] = useState(false);
+
+  // Modify the handleSubmit function
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setSportSelectionError(false);
+
+    // Validate sports selection
+    if (formData.preferredSports.length === 0) {
+      setSportSelectionError(true);
+      return;
+    }
+
     const updatedData: Partial<Player> = {
       ...formData,
       preferred_sports: formData.preferredSports,
@@ -221,6 +233,7 @@ export default function EditProfileForm({
                       ? [...formData.preferredSports, 'padel']
                       : formData.preferredSports.filter(s => s !== 'padel');
                     setFormData({ ...formData, preferredSports: newSports });
+                    setSportSelectionError(false);
                   }}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
@@ -257,6 +270,11 @@ export default function EditProfileForm({
                 <span className="text-gray-700">Todas as modalidades</span>
               </label>
             </div>
+            {sportSelectionError && (
+              <p className="mt-2 text-sm text-red-600">
+                Selecione pelo menos uma modalidade
+              </p>
+            )}
           </div>
 
           <div>
