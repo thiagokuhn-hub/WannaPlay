@@ -32,16 +32,8 @@ export default function EditProfileForm({
   locations
 }: Omit<EditProfileFormProps, 'currentUser'>) {
   const { user: currentUser } = useAuth();
-  
-  // Add this console log to debug
-  useEffect(() => {
-    if (currentUser) {
-      console.log('Current user admin status:', currentUser.is_admin);
-      console.log('Full user data:', currentUser);
-    }
-  }, [currentUser]);
-
   const [activeTab, setActiveTab] = useState<'profile' | 'history'>('profile');
+  
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -52,22 +44,24 @@ export default function EditProfileForm({
     playingSide: 'both' as PlayingSide,
     gender: 'male' as Gender,
     avatar: undefined as string | undefined,
+    preferredSports: [] as Sport[],
   });
 
-  // Update useEffect to properly set the categories
+  // Update the useEffect to include preferredSports
   useEffect(() => {
     if (currentUser) {
-      console.log('Current user data:', currentUser); // Debug log
+      console.log('Current user data:', currentUser);
       setFormData({
         name: currentUser.name || '',
         phone: currentUser.phone || '',
         email: currentUser.email || '',
         password: '',
-        padelCategory: currentUser.padel_category || '', // Changed from padelCategory
-        beachTennisCategory: currentUser.beach_tennis_category || '', // Changed from beachTennisCategory
-        playingSide: currentUser.playing_side || 'both', // Changed from playingSide
+        padelCategory: currentUser.padel_category || '',
+        beachTennisCategory: currentUser.beach_tennis_category || '',
+        playingSide: currentUser.playing_side || 'both',
         gender: currentUser.gender || 'male',
         avatar: currentUser.avatar,
+        preferredSports: currentUser.preferred_sports || ['padel', 'beach-tennis'],
       });
     }
   }, [currentUser]);
@@ -81,6 +75,15 @@ export default function EditProfileForm({
     'CAT A',
     'PROFISSIONAL'
   ];
+
+  // Add helper functions here, before handleFileChange
+  const shouldShowPadelCategory = () => {
+    return formData.preferredSports.includes('padel') || formData.preferredSports.length === 2;
+  };
+
+  const shouldShowBeachTennisCategory = () => {
+    return formData.preferredSports.includes('beach-tennis') || formData.preferredSports.length === 2;
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,6 +114,7 @@ export default function EditProfileForm({
     e.preventDefault();
     const updatedData: Partial<Player> = {
       ...formData,
+      preferred_sports: formData.preferredSports,
       ...(formData.password ? { password: formData.password } : {})
     };
     onSubmit(updatedData);
@@ -201,6 +205,59 @@ export default function EditProfileForm({
               </div>
             </div>
           </div>
+          
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Modalidades que quero jogar
+            </label>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.preferredSports.includes('padel')}
+                  onChange={(e) => {
+                    const newSports = e.target.checked
+                      ? [...formData.preferredSports, 'padel']
+                      : formData.preferredSports.filter(s => s !== 'padel');
+                    setFormData({ ...formData, preferredSports: newSports });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Padel</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.preferredSports.includes('beach-tennis')}
+                  onChange={(e) => {
+                    const newSports = e.target.checked
+                      ? [...formData.preferredSports, 'beach-tennis']
+                      : formData.preferredSports.filter(s => s !== 'beach-tennis');
+                    setFormData({ ...formData, preferredSports: newSports });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Beach Tennis</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.preferredSports.length === 2}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      preferredSports: e.target.checked 
+                        ? ['padel', 'beach-tennis']
+                        : []
+                    });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Todas as modalidades</span>
+              </label>
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -269,51 +326,55 @@ export default function EditProfileForm({
             </select>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Categoria Padel (Opcional)
-              </label>
-              <CategoryTooltip />
+          {shouldShowPadelCategory() && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Categoria Padel (Opcional)
+                </label>
+                <CategoryTooltip />
+              </div>
+              <select
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.padelCategory || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  padelCategory: e.target.value ? e.target.value as PadelCategory : undefined
+                })}
+              >
+                <option value="">Selecione a categoria (opcional)</option>
+                <option value="CAT 1">CAT 1</option>
+                <option value="CAT 2">CAT 2</option>
+                <option value="CAT 3">CAT 3</option>
+                <option value="CAT 4">CAT 4</option>
+                <option value="CAT 5">CAT 5</option>
+                <option value="CAT 6">CAT 6</option>
+              </select>
             </div>
-            <select
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.padelCategory || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                padelCategory: e.target.value ? e.target.value as PadelCategory : undefined
-              })}
-            >
-              <option value="">Selecione a categoria (opcional)</option>
-              <option value="CAT 1">CAT 1</option>
-              <option value="CAT 2">CAT 2</option>
-              <option value="CAT 3">CAT 3</option>
-              <option value="CAT 4">CAT 4</option>
-              <option value="CAT 5">CAT 5</option>
-              <option value="CAT 6">CAT 6</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Categoria Beach Tennis (Opcional)
-            </label>
-            <select
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.beachTennisCategory || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                beachTennisCategory: e.target.value ? e.target.value as BeachTennisCategory : undefined
-              })}
-            >
-              <option value="">Selecione a categoria (opcional)</option>
-              {beachTennisCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
+          )}
+          
+          {shouldShowBeachTennisCategory() && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Categoria Beach Tennis (Opcional)
+              </label>
+              <select
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.beachTennisCategory || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  beachTennisCategory: e.target.value ? e.target.value as BeachTennisCategory : undefined
+                })}
+              >
+                <option value="">Selecione a categoria (opcional)</option>
+                {beachTennisCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -334,6 +395,9 @@ export default function EditProfileForm({
               <option value="both">Ambos</option>
             </select>
           </div>
+
+          
+          
 
           <div className="flex justify-end space-x-3">
             <button

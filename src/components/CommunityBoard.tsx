@@ -68,13 +68,24 @@ export default function CommunityBoard({
     // Add this with other state declarations (around line 50)
   const [showLoginForm, setShowLoginForm] = useState(false);
 
+  // Update the initial filters state to use user preferences
   const [filters, setFilters] = useState<Filters>({
-    sports: [],
+    sports: currentUser?.preferred_sports || ['padel', 'beach-tennis'],
     locations: [],
     categories: [],
     days: [],
     genders: []
   });
+
+  // Add this useEffect to update filters when user changes
+  useEffect(() => {
+    if (currentUser) {
+      setFilters(prev => ({
+        ...prev,
+        sports: currentUser.preferred_sports || ['padel', 'beach-tennis']
+      }));
+    }
+  }, [currentUser]);
 
   const handleActionWithAuth = (action: string, callback: () => void) => {
     if (!currentUser) {

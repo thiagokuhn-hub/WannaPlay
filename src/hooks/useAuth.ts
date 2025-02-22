@@ -113,8 +113,7 @@ export function useAuth() {
             beach_tennis_category: userData.beachTennisCategory || null,  // Changed from 'beginner' to null
             avatar: userData.avatar || null,
             cep: userData.cep || '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            preferred_sports: userData.preferredSports || ['padel', 'beach-tennis'],
           }], {
             onConflict: 'id'
           });
@@ -186,7 +185,7 @@ export function useAuth() {
       if (!user?.id) {
         throw new Error('Usuário não encontrado');
       }
-
+  
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -198,12 +197,13 @@ export function useAuth() {
           padel_category: data.padel_category || data.padelCategory,
           beach_tennis_category: data.beach_tennis_category || data.beachTennisCategory,
           avatar: data.avatar,
+          preferred_sports: data.preferredSports || data.preferred_sports || ['padel', 'beach-tennis'],
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
-
+  
       if (error) throw error;
-
+  
       await fetchUser(user.id);
     } catch (error) {
       console.error('Error updating profile:', error);

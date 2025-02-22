@@ -35,6 +35,7 @@ const initialFormState = {
   gender: 'male' as Gender,
   avatar: undefined as string | undefined,
   cep: '',
+  preferredSports: ['padel', 'beach-tennis'] as Sport[], // Add this line
 };
 
 export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }: PlayerRegistrationProps) {
@@ -45,6 +46,15 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Add these helper functions here, before any other functions
+  const shouldShowPadelCategory = () => {
+    return formData.preferredSports.includes('padel') || formData.preferredSports.length === 2;
+  };
+
+  const shouldShowBeachTennisCategory = () => {
+    return formData.preferredSports.includes('beach-tennis') || formData.preferredSports.length === 2;
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -110,9 +120,22 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
     'PROFISSIONAL'
   ];
 
+  // Add error state for sports selection
+  const [sportSelectionError, setSportSelectionError] = useState(false);
+
+  // Modify the handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSportSelectionError(false);
+    
+    // Validate sports selection
+    if (formData.preferredSports.length === 0) {
+      setSportSelectionError(true);
+      return;
+    }
+    
+    // Rest of the validation and submission logic
     
     // Validate CEP
     if (formData.cep && !formData.cep.startsWith('9')) {
@@ -148,11 +171,7 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
 
   return (
     <>
-      <Modal
-        isOpen={isOpen}
-        onClose={handleClose}
-        title="Cadastro de Jogador"
-      >
+      <Modal isOpen={isOpen} onClose={handleClose} title="Cadastro de Jogador">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
@@ -160,6 +179,7 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
             </div>
           )}
 
+          
           <div className="flex flex-col items-center">
             <div className="relative">
               <div className={`w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 ${
@@ -207,7 +227,63 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
               </div>
             </div>
           </div>
-
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Modalidades que quero jogar
+            </label>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.preferredSports.includes('padel')}
+                  onChange={(e) => {
+                    const newSports = e.target.checked
+                      ? [...formData.preferredSports, 'padel']
+                      : formData.preferredSports.filter(s => s !== 'padel');
+                    setFormData({ ...formData, preferredSports: newSports });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Padel</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.preferredSports.includes('beach-tennis')}
+                  onChange={(e) => {
+                    const newSports = e.target.checked
+                      ? [...formData.preferredSports, 'beach-tennis']
+                      : formData.preferredSports.filter(s => s !== 'beach-tennis');
+                    setFormData({ ...formData, preferredSports: newSports });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Beach Tennis</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.preferredSports.length === 2}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      preferredSports: e.target.checked 
+                        ? ['padel', 'beach-tennis']
+                        : []
+                    });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Todas as modalidades</span>
+              </label>
+            </div>
+            {sportSelectionError && (
+              <p className="mt-2 text-sm text-red-600">
+                Selecione pelo menos uma modalidade
+              </p>
+            )}
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nome Completo
@@ -305,54 +381,58 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
             />
           </div>
 
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Categoria Padel (Opcional)
-              </label>
-              <CategoryTooltip />
-            </div>
-            <select
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.padelCategory || ''}
-              onChange={(e) => setFormData({
-                ...formData,
-                padelCategory: e.target.value ? e.target.value as PadelCategory : undefined
-              })}
-            >
-              <option value="">Selecione a categoria (opcional)</option>
-              <option value="CAT 1">CAT 1</option>
-              <option value="CAT 2">CAT 2</option>
-              <option value="CAT 3">CAT 3</option>
-              <option value="CAT 4">CAT 4</option>
-              <option value="CAT 5">CAT 5</option>
-              <option value="CAT 6">CAT 6</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Categoria Beach Tennis (Opcional)
-            </label>
-            <select
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.beachTennisCategory || ''}
-              onChange={(e) => {
-                const value = e.target.value;
-                setFormData({
+          {shouldShowPadelCategory() && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Categoria Padel (Opcional)
+                </label>
+                <CategoryTooltip />
+              </div>
+              <select
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.padelCategory || ''}
+                onChange={(e) => setFormData({
                   ...formData,
-                  beachTennisCategory: value === '' ? undefined : value as BeachTennisCategory
-                });
-              }}
-            >
-              <option value="">Selecione a categoria (opcional)</option>
-              {beachTennisCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
+                  padelCategory: e.target.value ? e.target.value as PadelCategory : undefined
+                })}
+              >
+                <option value="">Selecione a categoria (opcional)</option>
+                <option value="CAT 1">CAT 1</option>
+                <option value="CAT 2">CAT 2</option>
+                <option value="CAT 3">CAT 3</option>
+                <option value="CAT 4">CAT 4</option>
+                <option value="CAT 5">CAT 5</option>
+                <option value="CAT 6">CAT 6</option>
+              </select>
+            </div>
+          )}
+
+          {shouldShowBeachTennisCategory() && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Categoria Beach Tennis (Opcional)
+              </label>
+              <select
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.beachTennisCategory || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({
+                    ...formData,
+                    beachTennisCategory: value === '' ? undefined : value as BeachTennisCategory
+                  });
+                }}
+              >
+                <option value="">Selecione a categoria (opcional)</option>
+                {beachTennisCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

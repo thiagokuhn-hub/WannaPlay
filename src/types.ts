@@ -17,6 +17,7 @@ export interface Player {
   created_at?: string;
   updated_at?: string;
   cep?: string;
+  preferred_sports?: Sport[];
 }
 
 export type PadelCategory = 'CAT 1' | 'CAT 2' | 'CAT 3' | 'CAT 4' | 'CAT 5' | 'CAT 6';
