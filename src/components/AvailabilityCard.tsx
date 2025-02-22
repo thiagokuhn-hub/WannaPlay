@@ -69,19 +69,23 @@ export default function AvailabilityCard({
     return sides[side as keyof typeof sides] || 'Não especificado';
   };
 
+  // In the getCategoryDisplay function
   const getCategoryDisplay = () => {
     const categories = [];
     
     if (availability.sports.includes('padel')) {
-      // Change from padelCategory to padel_category
       const padelCategory = availability.player.padel_category || 'Não informada';
       categories.push(`Padel: ${padelCategory}`);
     }
     
     if (availability.sports.includes('beach-tennis')) {
-      // Change from beachTennisCategory to beach_tennis_category
       const btCategory = availability.player.beach_tennis_category || 'Não informada';
       categories.push(`BT: ${btCategory}`);
+    }
+  
+    if (availability.sports.includes('tennis')) {
+      const tennisCategory = availability.player.tennis_category || 'Não informada';
+      categories.push(`Tênis: ${tennisCategory}`);
     }
     
     return categories.length > 0 ? categories.join(' • ') : 'Sem categoria';
@@ -97,7 +101,9 @@ export default function AvailabilityCard({
       availability.sports.length === 1 
         ? availability.sports[0] === 'padel' 
           ? 'bg-blue-100/70' 
-          : 'bg-green-100/70'
+          : availability.sports[0] === 'tennis'
+            ? 'bg-yellow-100/70'
+            : 'bg-green-100/70'
         : 'bg-white'
     }`}>
       <div className="flex items-start justify-between mb-2">
@@ -148,7 +154,7 @@ export default function AvailabilityCard({
           <div className="flex flex-wrap gap-1">
             {availability.sports.map((sport) => (
               <span key={sport} className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded-full">
-                {sport === 'padel' ? 'Padel' : 'Beach Tennis'}
+                {sport === 'padel' ? 'Padel' : sport === 'beach-tennis' ? 'Beach Tennis' : 'Tênis'}
               </span>
             ))}
           </div>

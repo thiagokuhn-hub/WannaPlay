@@ -143,7 +143,7 @@ const GameCard: React.FC<GameCardProps> = ({
     }
   };
 
-  const getCardBackground = () => {
+  function getCardBackground() {
     // First check game status
     switch (game.status) {
       case 'full':
@@ -154,7 +154,7 @@ const GameCard: React.FC<GameCardProps> = ({
         return 'bg-yellow-50';
       default:
         // If status is 'open', use sport-specific background
-        return game.sport === 'padel' ? 'bg-blue-100/70' : 'bg-green-100/70';
+        return game.sport === 'tennis' ? 'bg-yellow-100/70' : game.sport === 'padel' ? 'bg-blue-100/70' : 'bg-green-100/70';
     }
   };
 

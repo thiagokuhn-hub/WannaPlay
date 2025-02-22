@@ -16,6 +16,7 @@ interface PlayerRegistrationProps {
     password: string;
     padelCategory?: PadelCategory;
     beachTennisCategory?: BeachTennisCategory;
+    tennisCategory?: TennisCategory;  // Add this field
     playingSide: PlayingSide;
     gender: Gender;
     avatar?: string;
@@ -24,6 +25,7 @@ interface PlayerRegistrationProps {
   onSwitchToLogin: () => void;
 }
 
+// Update initialFormState
 const initialFormState = {
   name: '',
   phone: '',
@@ -35,9 +37,15 @@ const initialFormState = {
   gender: 'male' as Gender,
   avatar: undefined as string | undefined,
   cep: '',
-  preferredSports: ['padel', 'beach-tennis'] as Sport[], // Add this line
+  preferredSports: ['padel', 'beach-tennis', 'tennis'] as Sport[], // Add this line
 };
 
+// Add Tennis categories constant
+const tennisCategories: TennisCategory[] = [
+  '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'
+];
+
+// Add helper function for tennis category
 export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }: PlayerRegistrationProps) {
   const { signUp } = useAuth();
   const [formData, setFormData] = useState(initialFormState);
@@ -47,13 +55,17 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Add these helper functions here, before any other functions
+  // Define the helper functions inside the component
   const shouldShowPadelCategory = () => {
     return formData.preferredSports.includes('padel') || formData.preferredSports.length === 2;
   };
 
   const shouldShowBeachTennisCategory = () => {
     return formData.preferredSports.includes('beach-tennis') || formData.preferredSports.length === 2;
+  };
+
+  const shouldShowTennisCategory = () => {
+    return formData.preferredSports.includes('tennis');
   };
 
   useEffect(() => {
@@ -153,7 +165,8 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
     const submissionData = {
       ...formData,
       beachTennisCategory: formData.beachTennisCategory || undefined,
-      padelCategory: formData.padelCategory || undefined
+      padelCategory: formData.padelCategory || undefined,
+      tennisCategory: formData.tennisCategory || undefined
     };
     
     setLoading(true);
@@ -264,12 +277,26 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={formData.preferredSports.length === 2}
+                  checked={formData.preferredSports.includes('tennis')}
+                  onChange={(e) => {
+                    const newSports = e.target.checked
+                      ? [...formData.preferredSports, 'tennis']
+                      : formData.preferredSports.filter(s => s !== 'tennis');
+                    setFormData({ ...formData, preferredSports: newSports });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Tênis</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.preferredSports.length === 3}
                   onChange={(e) => {
                     setFormData({
                       ...formData,
                       preferredSports: e.target.checked 
-                        ? ['padel', 'beach-tennis']
+                        ? ['padel', 'beach-tennis', 'tennis']
                         : []
                     });
                   }}
@@ -426,6 +453,32 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
               >
                 <option value="">Selecione a categoria (opcional)</option>
                 {beachTennisCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {shouldShowTennisCategory() && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Categoria Tênis (Opcional)
+                </label>
+                <CategoryTooltip />
+              </div>
+              <select
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.tennisCategory || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  tennisCategory: e.target.value ? e.target.value as TennisCategory : undefined
+                })}
+              >
+                <option value="">Selecione a categoria (opcional)</option>
+                {tennisCategories.map((category) => (
                   <option key={category} value={category}>
                     {category}
                   </option>

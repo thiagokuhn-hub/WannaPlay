@@ -74,12 +74,14 @@ export function useAuth() {
         .from('profiles')
         .select('id')
         .eq('email', userData.email)
-        .single();
-
+        .single()
+        .throwOnError(); // Add this to handle errors properly
+    
       if (existingProfile) {
         throw new Error('Este email já está cadastrado');
       }
-
+    
+      // Rest of the signUp function remains the same
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -96,9 +98,9 @@ export function useAuth() {
           }
         }
       });
-
+    
       if (authError) throw authError;
-
+    
       if (authData.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -109,8 +111,9 @@ export function useAuth() {
             phone: userData.phone || '',
             playing_side: userData.playingSide || 'both',
             gender: userData.gender || 'other',
-            padel_category: userData.padelCategory || null,  // Changed from 'beginner' to null
-            beach_tennis_category: userData.beachTennisCategory || null,  // Changed from 'beginner' to null
+            padel_category: userData.padelCategory || null,
+            beach_tennis_category: userData.beachTennisCategory || null,
+            tennis_category: userData.tennisCategory || null,  // Add this line
             avatar: userData.avatar || null,
             cep: userData.cep || '',
             preferred_sports: userData.preferredSports || ['padel', 'beach-tennis'],
@@ -127,8 +130,11 @@ export function useAuth() {
         return authData.user;
       }
     } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
       console.error('Error signing up:', error);
-      throw error;
+      throw new Error('Erro ao criar conta');
     }
   }
 
@@ -196,6 +202,7 @@ export function useAuth() {
           gender: data.gender,
           padel_category: data.padel_category || data.padelCategory,
           beach_tennis_category: data.beach_tennis_category || data.beachTennisCategory,
+          tennis_category: data.tennis_category || data.tennisCategory,  // Add this line
           avatar: data.avatar,
           preferred_sports: data.preferredSports || data.preferred_sports || ['padel', 'beach-tennis'],
           updated_at: new Date().toISOString()

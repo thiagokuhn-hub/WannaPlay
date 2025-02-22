@@ -31,6 +31,11 @@ const formatTimeForSelect = (time: string) => {
   return time ? time.slice(0, 5) : '';
 };
 
+// Add Tennis categories
+const tennisCategories: TennisCategory[] = [
+  '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'
+];
+
 export default function GameProposalForm({ 
   onSubmit, 
   onClose, 
@@ -108,7 +113,7 @@ export default function GameProposalForm({
     setError('');
   };
 
-  const handleCategoryToggle = (category: PadelCategory | BeachTennisCategory) => {
+  const handleCategoryToggle = (category: PadelCategory | BeachTennisCategory | TennisCategory) => {
     setFormData(prev => ({
       ...prev,
       requiredCategories: prev.requiredCategories.includes(category)
@@ -176,7 +181,7 @@ export default function GameProposalForm({
           Esporte
         </label>
         <div className="flex flex-wrap gap-2">
-          {(['padel', 'beach-tennis'] as Sport[]).map((sportOption) => (
+          {(['padel', 'beach-tennis', 'tennis'] as Sport[]).map((sportOption) => (
             <button
               key={sportOption}
               type="button"
@@ -187,7 +192,7 @@ export default function GameProposalForm({
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {sportOption === 'padel' ? 'Padel' : 'Beach Tennis'}
+              {sportOption === 'padel' ? 'Padel' : sportOption === 'beach-tennis' ? 'Beach Tennis' : 'Tênis'}
             </button>
           ))}
         </div>
@@ -285,39 +290,48 @@ export default function GameProposalForm({
           <CategoryTooltip />
         </div>
         <div className="flex flex-wrap gap-2">
-          {formData.sport === 'padel' ? (
-            // Padel categories
-            padelCategories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => handleCategoryToggle(category)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  formData.requiredCategories.includes(category)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category}
-              </button>
-            ))
-          ) : (
-            // Beach Tennis categories
-            beachTennisCategories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => handleCategoryToggle(category)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  formData.requiredCategories.includes(category)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {category}
-              </button>
-            ))
-          )}
+          {formData.sport === 'padel' && padelCategories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => handleCategoryToggle(category)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                formData.requiredCategories.includes(category)
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+          {formData.sport === 'beach-tennis' && beachTennisCategories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => handleCategoryToggle(category)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                formData.requiredCategories.includes(category)
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+          {formData.sport === 'tennis' && tennisCategories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => handleCategoryToggle(category)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                formData.requiredCategories.includes(category)
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
         </div>
       </div>
 

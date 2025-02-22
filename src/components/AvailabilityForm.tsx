@@ -347,7 +347,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
             Esportes
           </label>
           <div className="flex flex-wrap gap-2">
-            {(['padel', 'beach-tennis'] as Sport[]).map((sport) => (
+            {(['padel', 'beach-tennis', 'tennis'] as Sport[]).map((sport) => (
               <button
                 key={sport}
                 type="button"
@@ -358,7 +358,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                 {sport === 'padel' ? 'Padel' : 'Beach Tennis'}
+                {sport === 'padel' ? 'Padel' : sport === 'beach-tennis' ? 'Beach Tennis' : 'Tênis'}
               </button>
             ))}
           </div>

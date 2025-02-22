@@ -159,7 +159,7 @@ export default function FilterPanel({ filters, onFilterChange, games, availabili
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {sport === 'padel' ? 'Padel' : 'Beach Tennis'}
+                  {sport === 'padel' ? 'Padel' : sport === 'beach-tennis' ? 'Beach Tennis' : 'Tênis'}
                 </button>
               ))}
             </div>

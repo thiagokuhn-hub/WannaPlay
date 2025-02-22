@@ -34,6 +34,7 @@ export default function EditProfileForm({
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'history'>('profile');
   
+  // Add to state initialization
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -41,6 +42,7 @@ export default function EditProfileForm({
     password: '',
     padelCategory: '',
     beachTennisCategory: '',
+    tennisCategory: '', // Add this line
     playingSide: 'both' as PlayingSide,
     gender: 'male' as Gender,
     avatar: undefined as string | undefined,
@@ -58,10 +60,11 @@ export default function EditProfileForm({
         password: '',
         padelCategory: currentUser.padel_category || '',
         beachTennisCategory: currentUser.beach_tennis_category || '',
+        tennisCategory: currentUser.tennis_category || '', // Add this line
         playingSide: currentUser.playing_side || 'both',
         gender: currentUser.gender || 'male',
         avatar: currentUser.avatar,
-        preferredSports: currentUser.preferred_sports || ['padel', 'beach-tennis'],
+        preferredSports: currentUser.preferred_sports || ['padel', 'beach-tennis', 'tennis'],
       });
     }
   }, [currentUser]);
@@ -76,6 +79,10 @@ export default function EditProfileForm({
     'PROFISSIONAL'
   ];
 
+  const tennisCategories: TennisCategory[] = [
+    '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'
+  ];
+
   // Add helper functions here, before handleFileChange
   const shouldShowPadelCategory = () => {
     return formData.preferredSports.includes('padel') || formData.preferredSports.length === 2;
@@ -83,6 +90,10 @@ export default function EditProfileForm({
 
   const shouldShowBeachTennisCategory = () => {
     return formData.preferredSports.includes('beach-tennis') || formData.preferredSports.length === 2;
+  };
+
+  const shouldShowTennisCategory = () => {
+    return formData.preferredSports.includes('tennis');
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,12 +267,26 @@ export default function EditProfileForm({
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={formData.preferredSports.length === 2}
+                  checked={formData.preferredSports.includes('tennis')}
+                  onChange={(e) => {
+                    const newSports = e.target.checked
+                      ? [...formData.preferredSports, 'tennis']
+                      : formData.preferredSports.filter(s => s !== 'tennis');
+                    setFormData({ ...formData, preferredSports: newSports });
+                  }}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-gray-700">Tênis</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.preferredSports.length === 3} // Update to check for all three sports
                   onChange={(e) => {
                     setFormData({
                       ...formData,
                       preferredSports: e.target.checked 
-                        ? ['padel', 'beach-tennis']
+                        ? ['padel', 'beach-tennis', 'tennis'] // Include tennis here
                         : []
                     });
                   }}
@@ -394,25 +419,32 @@ export default function EditProfileForm({
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Lado Preferido
-            </label>
-            <select
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.playingSide}
-              onChange={(e) =>
-                setFormData({
+          {/* Add after beach tennis category selection */}
+          {shouldShowTennisCategory() && (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Categoria Tênis (Opcional)
+                </label>
+                <CategoryTooltip />
+              </div>
+              <select
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.tennisCategory || ''}
+                onChange={(e) => setFormData({
                   ...formData,
-                  playingSide: e.target.value as PlayingSide,
-                })
-              }
-            >
-              <option value="left">Esquerdo</option>
-              <option value="right">Direito</option>
-              <option value="both">Ambos</option>
-            </select>
-          </div>
+                  tennisCategory: e.target.value ? e.target.value as TennisCategory : undefined
+                })}
+              >
+                <option value="">Selecione a categoria (opcional)</option>
+                {tennisCategories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           
           
