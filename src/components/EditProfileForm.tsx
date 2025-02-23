@@ -6,6 +6,7 @@ import PlayerHistory from './PlayerHistory';
 import { Camera } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { resizeImage } from '../utils/imageUtils';
+import GroupsPanel from './groups/GroupsPanel';
 
 interface EditProfileFormProps {
   isOpen: boolean;
@@ -32,7 +33,8 @@ export default function EditProfileForm({
   locations
 }: Omit<EditProfileFormProps, 'currentUser'>) {
   const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'history'>('profile');
+  // Update the state to include 'groups' as a possible tab
+  const [activeTab, setActiveTab] = useState<'profile' | 'history' | 'groups'>('profile');
   
   // Add to state initialization
   const [formData, setFormData] = useState({
@@ -176,6 +178,16 @@ export default function EditProfileForm({
           >
             Histórico
           </button>
+          <button
+            onClick={() => setActiveTab('groups')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'groups'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Grupos
+          </button>
         </nav>
       </div>
 
@@ -292,7 +304,7 @@ export default function EditProfileForm({
                   }}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="text-gray-700">Todas as modalidades</span>
+                <span className="text-gray-700">Todas</span>
               </label>
             </div>
             {sportSelectionError && (
@@ -465,7 +477,7 @@ export default function EditProfileForm({
             </button>
           </div>
         </form>
-      ) : (
+      ) : activeTab === 'history' ? (
         <PlayerHistory
           player={currentUser}
           games={games}
@@ -475,7 +487,9 @@ export default function EditProfileForm({
           onRepublishAvailability={onRepublishAvailability}
           locations={locations}
         />
-      )}
+      ) : activeTab === 'groups' ? (
+        <GroupsPanel currentUser={currentUser} />
+      ) : null}
     </Modal>
   );
 }

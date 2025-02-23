@@ -3,7 +3,7 @@ import { Sport, Location, WeekDay, TimeSlot, Player, SkillLevel, PlayingSide, Av
 import { generateTimeOptions } from '../utils/timeUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Clock, Plus, X } from 'lucide-react';
+import { Clock, Plus, X, Search } from 'lucide-react';
 import SkillLevelTooltip from './tooltips/SkillLevelTooltip';
 import LocationInfoTooltip from './tooltips/LocationInfoTooltip';
 import { supabase } from '../lib/supabase';
@@ -16,6 +16,7 @@ interface AvailabilityFormProps {
     timeSlots: TimeSlot[];
     notes?: string;
     duration: AvailabilityDuration;
+    groups?: string[]; // Add groups support
   }) => void;
   onClose: () => void;
   currentUser: Player | null;
@@ -207,6 +208,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
           padelCategory: formData.padelCategory,
           beachTennisCategory: formData.beachTennisCategory,
         },
+        groups: selectedGroups.map(group => group.group_id), // Include selected groups
       };
 
       onSubmit(submitData);
@@ -222,6 +224,162 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
     handleSubmit({ preventDefault: () => {} } as React.FormEvent);
   };
 
+  // Add this with other state declarations
+  const [isPublic, setIsPublic] = useState(true);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [userGroups, setUserGroups] = useState<Group[]>([]);
+  const [searchGroupTerm, setSearchGroupTerm] = useState('');
+  const [searchGroupResults, setSearchGroupResults] = useState<any[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<Group[]>([]);
+
+  // Add this function with other function declarations
+  // Update the handleGroupModalOpen function
+  const handleGroupModalOpen = () => {
+    if (!currentUser) {
+      setIsPublic(true);
+      return;
+    }
+
+    setIsPublic(false); // Set to false when opening group modal
+    setShowGroupModal(true);
+    fetchUserGroups();
+  };
+
+  // Update the effect that monitors selectedGroups
+  useEffect(() => {
+    // Only switch to public if we're in group mode and no groups are selected
+    // AND there are no groups in userGroups (user's groups)
+    if (!isPublic && selectedGroups.length === 0 && userGroups.length === 0) {
+      setIsPublic(true);
+    }
+  }, [selectedGroups, isPublic, userGroups]);
+
+  // Update the modal close handler
+  const handleCloseGroupModal = () => {
+    // Switch to public if no groups are actually selected
+    if (selectedGroups.length === 0) {
+      setIsPublic(true);
+    }
+    setShowGroupModal(false);
+  };
+
+  // Also update the useEffect to remove the userGroups check since we only care about selected groups
+  useEffect(() => {
+    // Only switch to public if we're in group mode and no groups are selected
+    if (!isPublic && selectedGroups.length === 0) {
+      setIsPublic(true);
+    }
+  }, [selectedGroups, isPublic]);
+
+  // Add this function to fetch user groups
+  // Update the fetchUserGroups function to handle the group structure correctly
+  const fetchUserGroups = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const { data: groups, error } = await supabase
+        .from('group_members')
+        .select(`
+          group_id,
+          groups (
+            id,
+            name,
+            avatar,
+            is_public
+          )
+        `)
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      if (groups) {
+        const formattedGroups = groups.map(g => ({
+          group_id: g.group_id,
+          name: g.groups?.name || 'Unknown Group',
+          avatar: g.groups?.avatar,
+          is_public: g.groups?.is_public
+        }));
+        setUserGroups(formattedGroups);
+      }
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+    }
+  };
+
+  const [groupRequestStatus, setGroupRequestStatus] = useState<{ [key: string]: boolean }>({});
+
+    // Update the handleJoinGroup function to include avatar
+    const handleJoinGroup = async (group: any) => {
+      if (group.is_public) {
+        // For public groups, create a properly formatted group object
+        const formattedGroup = {
+          group_id: group.id,
+          name: group.name,
+          avatar: group.avatar // Include avatar in the formatted group
+        };
+        
+        // Rest of the function remains the same
+        if (currentUser) {
+          try {
+            await supabase
+              .from('group_members')
+              .insert({
+                user_id: currentUser.id,
+                group_id: group.id
+              });
+            
+            // Fetch updated user groups after successful insertion
+            await fetchUserGroups();
+            
+            // Add to selected groups after successful database update
+            handleGroupToggle(formattedGroup);
+            setIsPublic(false); // Ensure we stay in group mode
+          } catch (error) {
+            console.error('Error adding user to group:', error);
+          }
+        }
+      } else {
+        // Request to join private group
+        setGroupRequestStatus(prev => ({ ...prev, [group.id]: true }));
+        alert('Uma solicitação de aprovação foi enviada para o administrador do grupo.');
+        
+        // Check if there are any selected groups, if not switch to public
+        if (selectedGroups.length === 0) {
+          setIsPublic(true);
+        }
+      }
+    };
+
+    const handleSearchGroups = async (term: string) => {
+        setSearchGroupTerm(term);
+        if (term.length < 3) {
+          setSearchGroupResults([]);
+          return;
+        }
+  
+        try {
+          const { data, error } = await supabase
+            .from('groups')
+            .select('id, name, is_public, avatar') // Include avatar in the select
+            .ilike('name', `%${term}%`)
+            .limit(5);
+  
+          if (error) throw error;
+          setSearchGroupResults(data || []);
+        } catch (error) {
+          console.error('Error searching groups:', error);
+        }
+      };
+
+  const handleGroupToggle = (group: Group) => {
+    setSelectedGroups(prev => 
+      prev.some(g => g.group_id === group.group_id)
+        ? prev.filter(g => g.group_id !== group.group_id)
+        : [...prev, group]
+    );
+  };
+
+
   return (
     <div className="relative">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -231,6 +389,49 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
           </div>
         )}
 
+        {/* Add sports selection section */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Modalidades (selecione uma ou mais)
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleSportToggle('tennis')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                formData.sports.includes('tennis')
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Tênis
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSportToggle('padel')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                formData.sports.includes('padel')
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Padel
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSportToggle('beach-tennis')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                formData.sports.includes('beach-tennis')
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Beach Tennis
+            </button>
+          </div>
+        </div>
+
+        {/* Rest of the form fields */}
         {!currentUser && (
           <>
             <div>
@@ -342,25 +543,41 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
           </div>
         </div>
 
+        
+        
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Esportes
+            Tipo de Disponibilidade
           </label>
-          <div className="flex flex-wrap gap-2">
-            {(['padel', 'beach-tennis', 'tennis'] as Sport[]).map((sport) => (
-              <button
-                key={sport}
-                type="button"
-                onClick={() => handleSportToggle(sport)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  formData.sports.includes(sport)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {sport === 'padel' ? 'Padel' : sport === 'beach-tennis' ? 'Beach Tennis' : 'Tênis'}
-              </button>
-            ))}
+          <div className="flex gap-4">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="visibility"
+                checked={isPublic}
+                onChange={() => {
+                  setIsPublic(true);
+                  setShowGroupModal(false);
+                }}
+                className="h-4 w-4 rounded-full border-gray-300 text-blue-600 focus:blue-500"
+              />
+              <span className="text-sm text-gray-700 ml-2">Pública</span>
+            </label>
+            <label 
+              className="flex items-center cursor-pointer"
+              onClick={handleGroupModalOpen}
+            >
+              <input
+                type="radio"
+                name="visibility"
+                checked={!isPublic}
+                onChange={() => {}} // Add empty onChange to prevent React warning
+                className="h-4 w-4 rounded-full border-gray-300 text-blue-600 focus:blue-500"
+              />
+              <span className="text-sm text-gray-700 ml-2">
+                Grupos {selectedGroups.length > 0 && `(${selectedGroups.length})`}
+              </span>
+            </label>
           </div>
         </div>
 
@@ -563,6 +780,119 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
                   Adicionar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showGroupModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Selecione Grupos</h3>
+              <button
+                onClick={handleCloseGroupModal}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchGroupTerm}
+                  onChange={(e) => handleSearchGroups(e.target.value)}
+                  placeholder="Pesquisar grupos..."
+                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              </div>
+
+              {userGroups.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Meus Grupos</h4>
+                  <div className="space-y-2">
+                   
+                    {userGroups.map((group) => (
+                      // Update the display in "Meus Grupos" section
+                      <button
+                        key={group.group_id}
+                        onClick={() => handleGroupToggle(group)}
+                        className={`w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 ${
+                          selectedGroups.some(g => g.group_id === group.group_id) ? 'bg-blue-100' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={group.avatar || '/default-group.png'}
+                            alt={group.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                          <div className="flex items-center gap-2">
+                            <span>{group.name}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              group.is_public 
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {group.is_public ? 'Público' : 'Privado'}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-blue-600">
+                          {selectedGroups.some(g => g.group_id === group.group_id) ? 'Selecionado' : 'Selecionar'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {searchGroupResults.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Resultados da Pesquisa</h4>
+                  <div className="space-y-2">
+                    {searchGroupResults.map((group) => (
+                      <button
+                        key={group.id}
+                        onClick={() => handleJoinGroup(group)}
+                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={group.avatar || '/default-group.png'}
+                            alt={group.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                          <div className="flex items-center gap-2">
+                            <span>{group.name}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              group.is_public 
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {group.is_public ? 'Público' : 'Privado'}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-blue-600">
+                          {group.is_public 
+                            ? (selectedGroups.some(g => g.group_id === group.id) ? 'Selecionado' : 'Entrar')
+                            : (groupRequestStatus[group.id] ? 'Solicitado' : 'Entrar')}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {userGroups.length === 0 && searchGroupResults.length === 0 && searchGroupTerm.length < 3 && (
+                <p className="text-center text-gray-500 py-4">
+                  Digite pelo menos 3 caracteres para pesquisar grupos
+                </p>
+              )}
             </div>
           </div>
         </div>
