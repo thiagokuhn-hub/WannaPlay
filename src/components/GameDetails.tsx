@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Users, X, Trash2, UserMinus } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, X, Trash2, UserMinus, Mail } from 'lucide-react';
 import { GiTennisBall } from 'react-icons/gi';
 import { GameProposal, Player } from '../types';
 import { formatGameDate } from '../utils/dateUtils';
@@ -216,6 +216,7 @@ export default function GameDetails({
                             </div>
                           </div>
                         </div>
+                        
                         <div className="flex items-start gap-4">
                           <div className="text-right">
                             {player.phone && player.phone.trim() !== '' && (
@@ -231,7 +232,13 @@ export default function GameDetails({
                               </p>
                             )}
                             {player.email && player.email.trim() !== '' && (
-                              <p className="text-sm text-gray-500">{player.email}</p>
+                              <a
+                                href={`mailto:${player.email}`}
+                                className="inline-block text-gray-500 hover:text-gray-700 transition-colors"
+                                title={`Enviar email para ${player.name}`}
+                              >
+                                <Mail className="w-4 h-4" />
+                              </a>
                             )}
                           </div>
                           {(isCreator || (currentUser?.id === player.id)) && player.id !== game.createdBy.id && (
