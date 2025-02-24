@@ -45,8 +45,9 @@ export function useAvailabilities() {
     const days = data.duration === '7days' ? 7 : 14;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + days);
-
+  
     try {
+      // 1. Criar a disponibilidade
       const { data: createdAvailability, error: availError } = await supabase
         .from('availabilities')
         .insert({
@@ -56,36 +57,72 @@ export function useAvailabilities() {
           notes: data.notes,
           duration: data.duration,
           expires_at: expiresAt.toISOString(),
-          status: 'active'
+          status: 'active',
+          is_public: data.is_public // Garantir que is_public está sendo salvo
         })
         .select()
         .single();
-
+  
       if (availError) throw availError;
-
+  
+      // 2. Se não for pública e tiver grupos, criar as relações
+      if (data.is_public === false && data.groups && data.groups.length > 0) {
+        const availabilityGroups = data.groups.map(groupId => ({
+          availability_id: createdAvailability.id,
+          group_id: groupId
+        }));
+  
+        const { error: groupsError } = await supabase
+          .from('availability_groups')
+          .insert(availabilityGroups);
+  
+        if (groupsError) throw groupsError;
+      }
+  
+      // 2. Criar os time slots
       const timeSlotData = data.timeSlots!.map(slot => ({
         availability_id: createdAvailability.id,
         day: slot.day,
         start_time: slot.startTime,
         end_time: slot.endTime
       }));
-
+  
       const { error: slotsError } = await supabase
         .from('availability_time_slots')
         .insert(timeSlotData);
-
+  
       if (slotsError) throw slotsError;
-
-      const newAvailability: Availability = {
-        ...createdAvailability,
-        player: data.player,
-        timeSlots: data.timeSlots!,
-        createdAt: createdAvailability.created_at,
-        expiresAt: createdAvailability.expires_at
+  
+      // 3. Buscar a disponibilidade completa com todas as relações
+      const { data: completeAvailability, error: fetchError } = await supabase
+        .from('availabilities')
+        .select(`
+          *,
+          player:profiles(*),
+          time_slots:availability_time_slots(*)
+        `)
+        .eq('id', createdAvailability.id)
+        .single();
+  
+      if (fetchError) throw fetchError;
+  
+      // 4. Formatar a disponibilidade para o estado
+      const formattedAvailability: Availability = {
+        ...completeAvailability,
+        player: completeAvailability.player,
+        timeSlots: completeAvailability.time_slots?.map(slot => ({
+          day: slot.day,
+          startTime: slot.start_time,
+          endTime: slot.end_time
+        })) || [],
+        createdAt: completeAvailability.created_at,
+        expiresAt: completeAvailability.expires_at
       };
-
-      setAvailabilities(prev => [...prev, newAvailability]);
-      return newAvailability;
+  
+      // 5. Atualizar o estado com a nova disponibilidade
+      setAvailabilities(prev => [formattedAvailability, ...prev]);
+      
+      return formattedAvailability;
     } catch (error) {
       console.error('Error creating availability:', error);
       throw error;

@@ -1,3 +1,0 @@
-﻿"schemaname","tablename","policyname","permissive","roles","cmd","qual","with_check"
-"public","notifications","Users can update own notifications","PERMISSIVE","{public}","UPDATE","(user_id = auth.uid())","null"
-"public","notifications","Users can view own notifications","PERMISSIVE","{public}","SELECT","(user_id = auth.uid())","null"

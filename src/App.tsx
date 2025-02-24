@@ -282,7 +282,16 @@ function App() {
           .select(`
             *,
             player:profiles(*),
-            time_slots:availability_time_slots(*)
+            time_slots:availability_time_slots(*),
+            availability_groups(
+              group_id,
+              groups(
+                id,
+                name,
+                avatar,
+                is_public
+              )
+            )
           `);
 
         if (availError) throw availError;

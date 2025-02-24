@@ -15,6 +15,7 @@ import LoginForm from './LoginForm';  // Add this import
 import { getDayFromDate } from '../utils/dateUtils';
 import { useGeolocation } from '../hooks/useGeolocation';
 import LoadingSkeleton from './LoadingSkeleton';
+import { cleanupExpiredItems } from '../utils/cleanupUtils';
 
 interface CommunityBoardProps {
   games: GameProposal[];
@@ -76,8 +77,21 @@ export default function CommunityBoard({
     days: [],
     genders: []
   });
+  useEffect(() => {
+    const cleanup = async () => {
+      await cleanupExpiredItems();
+    };
+    
+    // Run cleanup when component mounts
+    cleanup();
 
-  // Add this useEffect to update filters when user changes
+    // Set up an interval to run cleanup every hour
+    const interval = setInterval(cleanup, 3600000); // 1 hour in milliseconds
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (currentUser) {
       setFilters(prev => ({
@@ -345,7 +359,7 @@ const handleGameClick = (game: GameProposal) => {
 
     return gamesWithDistance
       .filter(game => {
-        if (game.status === 'deleted') return false;
+        if (game.status === 'deleted' || game.status === 'expired') return false;
         
         const gameDate = new Date(game.date);
         gameDate.setHours(0, 0, 0, 0);
@@ -395,7 +409,7 @@ const handleGameClick = (game: GameProposal) => {
 
     return availabilitiesWithDistance
       .filter(availability => {
-        if (availability.status === 'deleted') return false;
+        if (availability.status === 'deleted' || availability.status === 'expired') return false;
         
         const expirationDate = new Date(availability.expiresAt);
         expirationDate.setHours(0, 0, 0, 0);

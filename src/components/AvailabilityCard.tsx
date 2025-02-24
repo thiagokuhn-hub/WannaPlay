@@ -6,14 +6,16 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatDisplayName } from '../utils/nameUtils';
 
+// Update the props interface
 interface AvailabilityCardProps {
   availability: Availability;
   currentUserId?: string | null;
   onEdit?: (availability: Availability) => void;
   onDelete?: (availabilityId: string) => void;
-  locations: Location[]; // Add locations prop
+  locations: Location[];
 }
 
+// Update the component parameters to remove onToggleVisibility
 export default function AvailabilityCard({ 
   availability, 
   currentUserId,
@@ -22,8 +24,10 @@ export default function AvailabilityCard({
   locations = []
 }: AvailabilityCardProps) {
   const isOwner = currentUserId === availability.player.id;
-  // Add this line to parse the expiration date
+  
+  // Add validation for expiration date
   const expiresAt = new Date(availability.expiresAt);
+  const isValidDate = !isNaN(expiresAt.getTime());
 
   // Add getLocationNames function
   const getLocationNames = () => {
@@ -191,20 +195,28 @@ export default function AvailabilityCard({
 
         <div className="text-xs text-gray-600">
           {availability.player.phone && (
-            <a 
-              href={`https://wa.me/55${formatPhoneNumber(availability.player.phone)}`}
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-blue-600 hover:text-blue-800"
-            >
-              {availability.player.phone}
-            </a>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500">WhatsApp:</span>
+              <a 
+                href={`https://wa.me/55${formatPhoneNumber(availability.player.phone)}`}
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-blue-600 hover:text-blue-800"
+              >
+                {availability.player.phone}
+              </a>
+            </div>
           )}
         </div>
 
+        
         <div className="text-xs text-gray-500 flex items-center">
           <Clock4 className="w-3 h-3 mr-1" />
-          Expira em {format(expiresAt, "dd 'de' MMMM", { locale: ptBR })}
+          {isValidDate ? (
+            `Expira em ${format(expiresAt, "dd 'de' MMMM", { locale: ptBR })}`
+          ) : (
+            'Data de expiração não disponível'
+          )}
         </div>
       </div>
     </div>

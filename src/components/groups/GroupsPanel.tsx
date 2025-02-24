@@ -108,6 +108,24 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
     }
   };
 
+  const handleRemoveMember = async (memberId: string) => {
+    if (!editingGroup) return;
+    
+    try {
+      if (window.confirm('Tem certeza que deseja remover este membro?')) {
+        await removeMember(editingGroup.id, memberId);
+        // Refresh the group members list
+        await fetchGroupMembers(editingGroup.id);
+        // Refresh the groups list to update member counts
+        loadGroups();
+      }
+    } catch (error) {
+      console.error('Error removing member:', error);
+      alert('Erro ao remover membro. Tente novamente.');
+    }
+  };
+
+
   const handleEditGroupClick = async (group: Group) => {
     setEditingGroup(group);
     setNewGroupData({ 
@@ -270,8 +288,149 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
       {showCreateGroup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-6">
-            {/* Modal content for creating group */}
-            {/* ... (Keep the existing create group modal content) ... */}
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Criar Grupo</h3>
+              <button
+                onClick={() => setShowCreateGroup(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Group Details Form */}
+            <div className="space-y-4">
+              {/* Group Image Upload */}
+              <div className="flex items-center gap-4">
+                {newGroupData.avatar ? (
+                  <img
+                    src={newGroupData.avatar}
+                    alt="Group avatar"
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg"
+                  >
+                    Alterar foto
+                  </button>
+                </div>
+              </div>
+
+              <input
+                type="text"
+                value={newGroupData.name}
+                onChange={(e) => setNewGroupData({ ...newGroupData, name: e.target.value })}
+                placeholder="Nome do grupo"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+              
+              {/* Rest of the form content */}
+              {/* Add Player Search Section */}
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Pesquisar jogadores..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                
+                {/* Search Results */}
+                {searchTerm.length >= 3 && searchResults.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto border rounded-lg">
+                    {searchResults.map((player) => (
+                      <div
+                        key={player.id}
+                        className="flex items-center justify-between p-2 hover:bg-gray-50"
+                      >
+                        <span>{player.name}</span>
+                        <button
+                          onClick={() => {
+                            if (!selectedMembers.find(m => m.id === player.id)) {
+                              setSelectedMembers([...selectedMembers, player]);
+                            }
+                            setSearchTerm('');
+                            setSearchResults([]);
+                          }}
+                          className="px-2 py-1 text-blue-600 hover:text-blue-800"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Selected Members */}
+                {selectedMembers.length > 0 && (
+                  <div className="space-y-2 mt-2">
+                    <h4 className="text-sm font-medium text-gray-700">Membros Selecionados</h4>
+                    <div className="space-y-1">
+                      {selectedMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                        >
+                          <span>{member.name}</span>
+                          <button
+                            onClick={() => setSelectedMembers(selectedMembers.filter(m => m.id !== member.id))}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Public/Private Toggle */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isPublic"
+                  checked={newGroupData.isPublic}
+                  onChange={(e) => setNewGroupData({ ...newGroupData, isPublic: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="isPublic" className="text-sm text-gray-700">
+                  Grupo público
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowCreateGroup(false)}
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateGroupSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={!newGroupData.name.trim()}
+              >
+                Criar Grupo
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -295,9 +454,121 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
       
             {/* Group Details Form */}
             <div className="space-y-4">
-              {/* ... existing group edit form fields ... */}
-            </div>
+              {/* Group Image Upload */}
+              <div className="flex items-center gap-4">
+                {newGroupData.avatar ? (
+                  <img
+                    src={newGroupData.avatar}
+                    alt="Group avatar"
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg"
+                  >
+                    Alterar foto
+                  </button>
+                </div>
+              </div>
+
+              <input
+                type="text"
+                value={newGroupData.name}
+                onChange={(e) => setNewGroupData({ ...newGroupData, name: e.target.value })}
+                placeholder="Nome do grupo"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+              
+              {/* Rest of the form content */}
+              {/* Add Player Search Section */}
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Pesquisar jogadores..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                
+                {/* Search Results */}
+                {searchTerm.length >= 3 && searchResults.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto border rounded-lg">
+                    {searchResults.map((player) => (
+                      <div
+                        key={player.id}
+                        className="flex items-center justify-between p-2 hover:bg-gray-50"
+                      >
+                        <span>{player.name}</span>
+                        <button
+                          onClick={() => {
+                            if (!selectedMembers.find(m => m.id === player.id)) {
+                              setSelectedMembers([...selectedMembers, player]);
+                            }
+                            setSearchTerm('');
+                            setSearchResults([]);
+                          }}
+                          className="px-2 py-1 text-blue-600 hover:text-blue-800"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
       
+                {/* Selected Members */}
+                {selectedMembers.length > 0 && (
+                  <div className="space-y-2 mt-2">
+                    <h4 className="text-sm font-medium text-gray-700">Membros Selecionados</h4>
+                    <div className="space-y-1">
+                      {selectedMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                        >
+                          <span>{member.name}</span>
+                          <button
+                            onClick={() => setSelectedMembers(selectedMembers.filter(m => m.id !== member.id))}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+      
+              {/* Public/Private Toggle */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isPublic"
+                  checked={newGroupData.isPublic}
+                  onChange={(e) => setNewGroupData({ ...newGroupData, isPublic: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="isPublic" className="text-sm text-gray-700">
+                  Grupo público
+                </label>
+              </div>
+            </div>
+
             {/* Pending Requests Section - Show only for admins */}
             {(editingGroup.created_by === currentUser.id || 
               groupMembers.find(m => m.id === currentUser.id)?.role === 'admin') && 

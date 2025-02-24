@@ -17,7 +17,8 @@ interface AvailabilityFormProps {
     timeSlots: TimeSlot[];
     notes?: string;
     duration: AvailabilityDuration;
-    groups?: string[]; // Add groups support
+    is_public: boolean;
+    groups?: string[];  // Add this field
   }) => void;
   onClose: () => void;
   currentUser: Player | null;
@@ -27,7 +28,7 @@ interface AvailabilityFormProps {
 
 export default function AvailabilityForm({ onSubmit, onClose, currentUser, initialData, availableLocations = [] }: AvailabilityFormProps) {
   // Add this console.log to debug
-  console.log('Available locations:', availableLocations);
+  
 
   const [formData, setFormData] = useState({
     name: currentUser?.name || '',
@@ -56,6 +57,10 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
 
   useEffect(() => {
     if (initialData) {
+      console.log('Initial Data:', initialData);
+      console.log('Is Public:', initialData.is_public);
+      console.log('Groups:', initialData.availability_groups);
+      
       setFormData({
         name: initialData.player.name,
         phone: initialData.player.phone,
@@ -70,6 +75,28 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
         padelCategory: initialData.player.padelCategory,
         beachTennisCategory: initialData.player.beachTennisCategory,
       });
+      
+      // Set isPublic based on initialData
+      setIsPublic(initialData.is_public);
+      
+      // Set selectedGroups if the availability is not public
+      if (!initialData.is_public && initialData.availability_groups?.length > 0) {
+        console.log('Setting groups:', initialData.availability_groups);
+        
+        const groups = initialData.availability_groups.map(ag => ({
+          group_id: ag.groups.id, // Update this line to use the correct path
+          name: ag.groups.name,
+          avatar: ag.groups.avatar,
+          is_public: ag.groups.is_public,
+          role: 'member'
+        }));
+        
+        console.log('Mapped groups:', groups); // Add this log
+        setSelectedGroups(groups);
+        
+        // Fetch user groups after setting selected groups
+        fetchUserGroups();
+      }
     }
   }, [initialData]);
 
@@ -180,44 +207,107 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
     return true;
   };
 
+  // Update the handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setShowCategoryWarning(false);
-
+  
     if (!validateForm()) {
       return;
     }
-
+  
     try {
-      // Just prepare and pass the data to parent
-      const submitData = {
+      if (initialData) {
+        // Update main availability data
+        const { error: updateError } = await supabase
+          .from('availabilities')
+          .update({
+            is_public: isPublic,
+            sports: formData.sports,
+            locations: formData.locations,
+            notes: formData.notes,
+            duration: formData.duration,
+          })
+          .eq('id', initialData.id);
+  
+        if (updateError) throw updateError;
+  
+        // Update time slots
+        // First, delete existing time slots
+        const { error: deleteError } = await supabase
+          .from('availability_time_slots')
+          .delete()
+          .eq('availability_id', initialData.id);
+  
+        if (deleteError) throw deleteError;
+  
+        // Then insert new time slots
+        const timeSlotData = formData.timeSlots.map(slot => ({
+          availability_id: initialData.id,
+          day: slot.day,
+          start_time: slot.startTime,
+          end_time: slot.endTime
+        }));
+  
+        const { error: timeSlotError } = await supabase
+          .from('availability_time_slots')
+          .insert(timeSlotData);
+  
+        if (timeSlotError) throw timeSlotError;
+  
+        // Handle group associations
+        if (isPublic) {
+          await supabase
+            .from('availability_groups')
+            .delete()
+            .eq('availability_id', initialData.id);
+        } else {
+          const groups = selectedGroups.map(group => ({
+            availability_id: initialData.id,
+            group_id: group.group_id
+          }));
+  
+          await supabase
+            .from('availability_groups')
+            .delete()
+            .eq('availability_id', initialData.id);
+  
+          if (groups.length > 0) {
+            const { error: groupError } = await supabase
+              .from('availability_groups')
+              .insert(groups);
+  
+            if (groupError) throw groupError;
+          }
+        }
+      }
+  
+      // Rest of the code remains the same...
+      onSubmit({
+        player: currentUser || undefined,
         sports: formData.sports,
         locations: formData.locations,
         timeSlots: formData.timeSlots,
         notes: formData.notes,
         duration: formData.duration,
-        player: currentUser || {
-          id: Date.now().toString(),
-          name: formData.name,
-          phone: formData.phone,
-          email: '',
-          password: '',
-          skillLevel: formData.skillLevel,
-          playingSide: formData.playingSide,
-          gender: formData.gender,
-          padelCategory: formData.padelCategory,
-          beachTennisCategory: formData.beachTennisCategory,
-        },
-        groups: selectedGroups.map(group => group.group_id), // Include selected groups
-      };
-
-      onSubmit(submitData);
+        is_public: isPublic,
+        groups: !isPublic ? selectedGroups.map(group => group.group_id) : undefined
+      });
+      
       onClose();
     } catch (error) {
       console.error('Error in form submission:', error);
       setError('Erro ao salvar disponibilidade. Tente novamente.');
     }
+  };
+
+  // Helper function to calculate expiry date
+  const calculateExpiryDate = (duration: AvailabilityDuration) => {
+    const days = duration === '7days' ? 7 : 14;
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return date.toISOString();
   };
 
   const handleContinueWithoutCategory = () => {

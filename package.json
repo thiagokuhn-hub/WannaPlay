@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "cleanup": "ts-node scripts/cleanExpiredItems.ts",
     "clean-availabilities": "node scripts/cleanAvailabilities.js"
   },
   "dependencies": {
