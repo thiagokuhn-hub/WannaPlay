@@ -7,6 +7,7 @@ import { Clock, Plus, X, Search } from 'lucide-react';
 import SkillLevelTooltip from './tooltips/SkillLevelTooltip';
 import LocationInfoTooltip from './tooltips/LocationInfoTooltip';
 import { supabase } from '../lib/supabase';
+import { useGroupManagement } from './groups/useGroupManagement'; // Ensure this is imported
 
 interface AvailabilityFormProps {
   onSubmit: (data: {
@@ -273,6 +274,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
 
   // Add this function to fetch user groups
   // Update the fetchUserGroups function to handle the group structure correctly
+  // Update the fetchUserGroups function to include member role
   const fetchUserGroups = async () => {
     if (!currentUser) return;
     
@@ -281,6 +283,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
         .from('group_members')
         .select(`
           group_id,
+          role,
           groups (
             id,
             name,
@@ -297,7 +300,8 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
           group_id: g.group_id,
           name: g.groups?.name || 'Unknown Group',
           avatar: g.groups?.avatar,
-          is_public: g.groups?.is_public
+          is_public: g.groups?.is_public,
+          role: g.role // Include role in the formatted group
         }));
         setUserGroups(formattedGroups);
       }
@@ -310,43 +314,48 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
 
     // Update the handleJoinGroup function to include avatar
     const handleJoinGroup = async (group: any) => {
-      if (group.is_public) {
-        // For public groups, create a properly formatted group object
-        const formattedGroup = {
-          group_id: group.id,
-          name: group.name,
-          avatar: group.avatar // Include avatar in the formatted group
-        };
-        
-        // Rest of the function remains the same
-        if (currentUser) {
-          try {
+      try {
+        if (group.is_public) {
+          // Handle public group join logic
+          const formattedGroup = {
+            group_id: group.id,
+            name: group.name,
+            avatar: group.avatar
+          };
+          
+          if (currentUser) {
             await supabase
               .from('group_members')
               .insert({
                 user_id: currentUser.id,
-                group_id: group.id
+                group_id: group.id,
+                role: 'member' // Ensure role is set for public groups
               });
             
-            // Fetch updated user groups after successful insertion
             await fetchUserGroups();
             
             // Add to selected groups after successful database update
             handleGroupToggle(formattedGroup);
-            setIsPublic(false); // Ensure we stay in group mode
-          } catch (error) {
-            console.error('Error adding user to group:', error);
+            setIsPublic(false);
           }
+        } else {
+          // Request to join private group
+          const { error } = await supabase
+            .from('group_members')
+            .insert({
+              user_id: currentUser.id,
+              group_id: group.id,
+              role: 'pending' // Set role to 'pending' for private groups
+            });
+          
+          if (error) throw error;
+          
+          setGroupRequestStatus(prev => ({ ...prev, [group.id]: true }));
+          alert('Uma solicitação de aprovação foi enviada para o administrador do grupo.');
         }
-      } else {
-        // Request to join private group
-        setGroupRequestStatus(prev => ({ ...prev, [group.id]: true }));
-        alert('Uma solicitação de aprovação foi enviada para o administrador do grupo.');
-        
-        // Check if there are any selected groups, if not switch to public
-        if (selectedGroups.length === 0) {
-          setIsPublic(true);
-        }
+      } catch (error) {
+        console.error('Error joining group:', error);
+        alert('Erro ao solicitar entrada no grupo. Tente novamente.');
       }
     };
 
@@ -786,113 +795,113 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
       )}
 
       {showGroupModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Selecione Grupos</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Selecionar Grupos</h3>
               <button
                 onClick={handleCloseGroupModal}
                 className="text-gray-500 hover:text-gray-700"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchGroupTerm}
-                  onChange={(e) => handleSearchGroups(e.target.value)}
-                  placeholder="Pesquisar grupos..."
-                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            {/* Add search field */}
+            <div className="relative">
+              <input
+                type="text"
+                value={searchGroupTerm}
+                onChange={(e) => handleSearchGroups(e.target.value)}
+                placeholder="Pesquisar grupos..."
+                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            </div>
+
+            {/* Display search results */}
+            {searchGroupResults.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">Resultados da Pesquisa</h4>
+                {searchGroupResults.map((group) => (
+                  <div
+                    key={group.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={group.avatar || '/default-group.png'}
+                        alt={group.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <span className="font-medium">{group.name}</span>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await handleJoinGroup(group);
+                        setGroupRequestStatus(prev => ({ ...prev, [group.id]: true }));
+                      }}
+                      className={`text-blue-600 hover:text-blue-800 ${
+                        groupRequestStatus[group.id] ? 'disabled' : ''
+                      }`}
+                      disabled={groupRequestStatus[group.id]}
+                    >
+                      {group.is_public ? 'Entrar' : groupRequestStatus[group.id] ? 'Aguardando aprovação' : 'Solicitar'}
+                    </button>
+                  </div>
+                ))}
               </div>
+            )}
 
-              {userGroups.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Meus Grupos</h4>
-                  <div className="space-y-2">
-                   
-                    {userGroups.map((group) => (
-                      // Update the display in "Meus Grupos" section
-                      <button
-                        key={group.group_id}
-                        onClick={() => handleGroupToggle(group)}
-                        className={`w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 ${
-                          selectedGroups.some(g => g.group_id === group.group_id) ? 'bg-blue-100' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={group.avatar || '/default-group.png'}
-                            alt={group.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                          <div className="flex items-center gap-2">
-                            <span>{group.name}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              group.is_public 
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {group.is_public ? 'Público' : 'Privado'}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-blue-600">
-                          {selectedGroups.some(g => g.group_id === group.group_id) ? 'Selecionado' : 'Selecionar'}
+            <div className="space-y-4">
+              {/* Rest of the existing groups list */}
+              {userGroups.map((group) => (
+                <div
+                  key={group.group_id}
+                  className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={group.avatar || '/default-group.png'}
+                      alt={group.name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div>
+                      <span className="font-medium">{group.name}</span>
+                      {group.role === 'pending' && (
+                        <span className="text-xs text-yellow-600 block">
+                          Aguardando aprovação
                         </span>
-                      </button>
-                    ))}
+                      )}
+                    </div>
                   </div>
+                  {group.role !== 'pending' && (
+                    <button
+                      type="button"
+                      onClick={() => handleGroupToggle(group)}
+                      className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                        selectedGroups.some(g => g.group_id === group.group_id)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {selectedGroups.some(g => g.group_id === group.group_id)
+                        ? 'Selecionado'
+                        : 'Selecionar'}
+                    </button>
+                  )}
                 </div>
-              )}
+              ))}
+            </div>
 
-              {searchGroupResults.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Resultados da Pesquisa</h4>
-                  <div className="space-y-2">
-                    {searchGroupResults.map((group) => (
-                      <button
-                        key={group.id}
-                        onClick={() => handleJoinGroup(group)}
-                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50"
-                      >
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={group.avatar || '/default-group.png'}
-                            alt={group.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                          <div className="flex items-center gap-2">
-                            <span>{group.name}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              group.is_public 
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {group.is_public ? 'Público' : 'Privado'}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-blue-600">
-                          {group.is_public 
-                            ? (selectedGroups.some(g => g.group_id === group.id) ? 'Selecionado' : 'Entrar')
-                            : (groupRequestStatus[group.id] ? 'Solicitado' : 'Entrar')}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {userGroups.length === 0 && searchGroupResults.length === 0 && searchGroupTerm.length < 3 && (
-                <p className="text-center text-gray-500 py-4">
-                  Digite pelo menos 3 caracteres para pesquisar grupos
-                </p>
-              )}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleCloseGroupModal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Concluir
+              </button>
             </div>
           </div>
         </div>
