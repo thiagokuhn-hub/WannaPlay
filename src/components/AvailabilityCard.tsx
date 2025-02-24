@@ -101,15 +101,33 @@ export default function AvailabilityCard({
   };
 
   return (
-    <div className={`rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow ${
-      availability.sports.length === 1 
-        ? availability.sports[0] === 'padel' 
-          ? 'bg-blue-100/70' 
-          : availability.sports[0] === 'tennis'
-            ? 'bg-yellow-100/70'
-            : 'bg-green-100/70'
-        : 'bg-white'
-    }`}>
+    <div 
+      className={`
+        rounded-sm shadow-md p-3 
+        hover:shadow-lg transition-all 
+        transform hover:-rotate-1 
+        relative
+        ${
+          availability.sports.length === 1 
+            ? availability.sports[0] === 'padel' 
+              ? 'bg-blue-100' 
+              : availability.sports[0] === 'tennis'
+                ? 'bg-yellow-100'
+                : 'bg-green-100'
+            : 'bg-yellow-50'
+        }
+        before:content-[''] 
+        before:absolute 
+        before:top-0 
+        before:left-[50%] 
+        before:w-8 
+        before:h-3 
+        before:bg-gray-200/50 
+        before:-translate-x-1/2 
+        before:-translate-y-1/2
+        before:rounded-sm
+      `}
+    >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           {availability.player.avatar ? (
