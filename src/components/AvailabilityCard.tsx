@@ -100,6 +100,25 @@ export default function AvailabilityCard({
     return phone.replace(/\D/g, '');
   };
 
+  // Add this function near the top of your component
+  const getTapeStyle = () => {
+    // Randomly decide if we should show one or two pieces of tape
+    const hasTwoTapes = Math.random() > 0.5;
+    
+    return hasTwoTapes ? 
+      `
+      before:content-[''] before:absolute before:top-0 before:left-[25%] before:w-8 before:h-3 
+      before:bg-gray-200/50 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-sm
+      after:content-[''] after:absolute after:top-0 after:right-[25%] after:w-8 after:h-3 
+      after:bg-gray-200/50 after:translate-x-1/2 after:-translate-y-1/2 after:rounded-sm
+      ` : 
+      `
+      before:content-[''] before:absolute before:top-0 before:left-[50%] before:w-8 before:h-3 
+      before:bg-gray-200/50 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-sm
+      `;
+  };
+  
+  // Update the main div className to use the dynamic tape style
   return (
     <div 
       className={`
@@ -116,16 +135,7 @@ export default function AvailabilityCard({
                 : 'bg-green-100'
             : 'bg-yellow-50'
         }
-        before:content-[''] 
-        before:absolute 
-        before:top-0 
-        before:left-[50%] 
-        before:w-8 
-        before:h-3 
-        before:bg-gray-200/50 
-        before:-translate-x-1/2 
-        before:-translate-y-1/2
-        before:rounded-sm
+        ${getTapeStyle()}
       `}
     >
       <div className="flex items-start justify-between mb-2">
