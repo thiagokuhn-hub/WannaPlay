@@ -49,12 +49,12 @@ export default function EditProfileForm({
     gender: 'male' as Gender,
     avatar: undefined as string | undefined,
     preferredSports: [] as Sport[],
+    showOnlyGroupContent: false, // Add this new field
   });
 
-  // Update the useEffect to include preferredSports
+  // Update useEffect to include the new field
   useEffect(() => {
     if (currentUser) {
-      console.log('Current user data:', currentUser);
       setFormData({
         name: currentUser.name || '',
         phone: currentUser.phone || '',
@@ -67,6 +67,7 @@ export default function EditProfileForm({
         gender: currentUser.gender || 'male',
         avatar: currentUser.avatar,
         preferredSports: currentUser.preferred_sports || ['padel', 'beach-tennis', 'tennis'],
+        showOnlyGroupContent: currentUser.show_only_group_content || false,
       });
     }
   }, [currentUser]);
@@ -140,6 +141,7 @@ export default function EditProfileForm({
     const updatedData: Partial<Player> = {
       ...formData,
       preferred_sports: formData.preferredSports,
+      show_only_group_content: formData.showOnlyGroupContent, // Add this line
       ...(formData.password ? { password: formData.password } : {})
     };
     onSubmit(updatedData);
@@ -243,7 +245,7 @@ export default function EditProfileForm({
           
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700">
               Modalidades que quero jogar
             </label>
             <div className="flex gap-6">
@@ -312,6 +314,20 @@ export default function EditProfileForm({
                 Selecione pelo menos uma modalidade
               </p>
             )}
+          </div>
+
+          {/* Add the new group content filter option */}
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="showOnlyGroupContent"
+              checked={formData.showOnlyGroupContent}
+              onChange={(e) => setFormData({ ...formData, showOnlyGroupContent: e.target.checked })}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="showOnlyGroupContent" className="text-sm text-gray-700">
+              Mostrar apenas jogos e disponibilidades dos meus grupos
+            </label>
           </div>
 
           <div>

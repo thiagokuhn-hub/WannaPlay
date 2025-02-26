@@ -284,12 +284,13 @@ function App() {
             player:profiles(*),
             time_slots:availability_time_slots(*),
             availability_groups(
-              group_id,
               groups(
                 id,
                 name,
-                avatar,
-                is_public
+                group_members(
+                  user_id,
+                  role
+                )
               )
             )
           `);

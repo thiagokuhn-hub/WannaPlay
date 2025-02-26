@@ -37,7 +37,7 @@ export type PlayingSide = 'left' | 'right' | 'both';
 
 export type Gender = 'male' | 'female';
 
-interface Availability {
+export interface Availability {
   id: string;
   player: Player;
   sports: Sport[];
@@ -49,4 +49,14 @@ interface Availability {
   expiresAt: string;
   is_public: boolean; // Make sure this exists
   groups?: Group[]; // Make sure this exists
+  availability_groups?: {
+    groups: {
+      id: string;
+      name: string;
+      group_members?: {
+        user_id: string;
+        role: string;
+      }[];
+    };
+  }[];
 }

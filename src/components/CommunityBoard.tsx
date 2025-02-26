@@ -329,59 +329,45 @@ const handleGameClick = (game: GameProposal) => {
   };
 
   const filterGames = (games: GameProposal[]) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    return games.filter(game => {
+      // First check if game is deleted
+      if (game.status === 'deleted') return false;
 
-    const gamesWithDistance = games.map(game => {
-      const closestLocation = game.locations
-        .map(locId => locations.find(l => l.id === locId))
-        .filter(loc => loc !== undefined)
-        .map(loc => ({
-          location: loc!,
-          distance: latitude && longitude ? 
-            calculateDistance(latitude, longitude, loc!.latitude, loc!.longitude) : 
-            Infinity
-        }))
-        .sort((a, b) => a.distance - b.distance)[0];
+      // If user has selected to see only group content and the game is public
+      if (currentUser?.show_only_group_content && game.is_public) {
+        return false;
+      }
 
-      // Fix: Adjust the date to local timezone
-      const gameDate = new Date(game.date);
-      gameDate.setMinutes(gameDate.getMinutes() + gameDate.getTimezoneOffset());
-      const dayOfWeek = getDayFromDate(gameDate);
+      // If game is not public, check if user is in the game's groups
+      if (!game.is_public) {
+        if (!currentUser) return false;
+        
+        const isInGroup = game.game_groups?.some(gg => 
+          gg.groups.group_members?.some(member => 
+            member.user_id === currentUser.id
+          )
+        );
+        
+        if (!isInGroup) return false;
+      }
 
-      return {
-        ...game,
-        distance: closestLocation?.distance || Infinity,
-        dateObj: gameDate,
-        dayOfWeek
-      };
-    });
+      const locationMatch = filters.locations.length === 0 || 
+        game.locations.some(loc => filters.locations.includes(loc));
+      
+      const categoryMatch = filters.categories.length === 0 || 
+        game.requiredCategories.some(cat => filters.categories.includes(cat));
+      
+      // Use the same day matching logic as FilterPanel
+      const dayMatch = filters.days.length === 0 || filters.days.includes(game.dayOfWeek);
+      
+      const genderMatch = filters.genders.length === 0 || 
+        filters.genders.includes(game.gender);
+      
+      const sportMatch = filters.sports.length === 0 || 
+        filters.sports.includes(game.sport);
 
-    return gamesWithDistance
-      .filter(game => {
-        if (game.status === 'deleted' || game.status === 'expired') return false;
-        
-        const gameDate = new Date(game.date);
-        gameDate.setHours(0, 0, 0, 0);
-        if (gameDate < today) return false;
-        
-        const locationMatch = filters.locations.length === 0 || 
-          game.locations.some(loc => filters.locations.includes(loc));
-        
-        const categoryMatch = filters.categories.length === 0 || 
-          game.requiredCategories.some(cat => filters.categories.includes(cat));
-        
-        // Use the same day matching logic as FilterPanel
-        const dayMatch = filters.days.length === 0 || filters.days.includes(game.dayOfWeek);
-        
-        const genderMatch = filters.genders.length === 0 || 
-          filters.genders.includes(game.gender);
-        
-        const sportMatch = filters.sports.length === 0 || 
-          filters.sports.includes(game.sport);
-
-        return locationMatch && categoryMatch && dayMatch && genderMatch && sportMatch;
-      })
+      return locationMatch && categoryMatch && dayMatch && genderMatch && sportMatch;
+    })
       .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
   };
 
@@ -409,12 +395,52 @@ const handleGameClick = (game: GameProposal) => {
 
     return availabilitiesWithDistance
       .filter(availability => {
+        // First check if availability is deleted or expired
         if (availability.status === 'deleted' || availability.status === 'expired') return false;
         
         const expirationDate = new Date(availability.expiresAt);
         expirationDate.setHours(0, 0, 0, 0);
         if (expirationDate < today) return false;
+
+        // Check if any of the availability sports match user's preferred sports
+        const sportsMatch = availability.sports.some(sport => 
+          currentUser?.preferred_sports?.includes(sport)
+        );
+        if (!sportsMatch) return false;
+
+        // If user wants to see only group content
+        if (currentUser?.show_only_group_content) {
+          // Always show user's own availabilities if sports match
+          if (currentUser.id === availability.player.id) return true;
+
+          // For other availabilities, only show if user is in the group
+          const isInGroup = availability.availability_groups?.some(ag => 
+            ag.groups.group_members?.some(member => 
+              member.user_id === currentUser.id && 
+              (member.role === 'member' || member.role === 'admin')
+            )
+          );
+
+          return isInGroup || false;
+        }
+
+        // If not filtering by groups, show public availabilities and group availabilities
+        if (availability.is_public) return true;
+
+        // For private availabilities, check group membership
+        if (!currentUser) return false;
         
+        if (currentUser.id === availability.player.id) return true;
+
+        const isInGroup = availability.availability_groups?.some(ag => 
+          ag.groups.group_members?.some(member => 
+            member.user_id === currentUser.id && 
+            (member.role === 'member' || member.role === 'admin')
+          )
+        );
+
+        return isInGroup || false;
+
         const locationMatch = filters.locations.length === 0 || 
           availability.locations.some(loc => filters.locations.includes(loc));
         
@@ -426,7 +452,7 @@ const handleGameClick = (game: GameProposal) => {
         
         const sportMatch = filters.sports.length === 0 || 
           availability.sports.some(sport => filters.sports.includes(sport));
-
+      
         const categoryMatch = filters.categories.length === 0 || 
           (availability.sports.includes('padel') && 
            availability.player.padel_category && 
@@ -434,7 +460,7 @@ const handleGameClick = (game: GameProposal) => {
           (availability.sports.includes('beach-tennis') && 
            availability.player.beach_tennis_category && 
            filters.categories.includes(availability.player.beach_tennis_category));
-
+      
         return locationMatch && dayMatch && genderMatch && sportMatch && categoryMatch;
       });
   };

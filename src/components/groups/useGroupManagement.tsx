@@ -12,6 +12,8 @@ export interface Group {
   members?: any[];
   status?: string;
   is_public?: boolean;
+  city?: string;    // Make sure this is defined
+  state?: string;   // Make sure this is defined
 }
 
 export const useGroupManagement = (currentUser: Player) => {
@@ -65,7 +67,10 @@ export const useGroupManagement = (currentUser: Player) => {
           created_at: group.created_at,
           members: group.members || [],
           status: group.members.find(m => m.user_id === currentUser.id)?.role || 'member',
-          pendingCount
+          pendingCount,
+          city: group.city,        // Add this
+          state: group.state,      // Add this
+          is_public: group.is_public
         };
       }));
       
@@ -111,11 +116,17 @@ export const useGroupManagement = (currentUser: Player) => {
     avatar?: string;
     isPublic: boolean;
     members: Player[];
+    city: string;     // Add this
+    state: string;    // Add this
   }) => {
     if (!groupData.name.trim()) {
       throw new Error('Por favor, insira um nome para o grupo');
     }
-
+  
+    if (!groupData.city.trim() || !groupData.state.trim()) {
+      throw new Error('Por favor, insira a cidade e estado do grupo');
+    }
+  
     try {
       const { data: group, error: groupError } = await supabase
         .from('groups')
@@ -123,13 +134,15 @@ export const useGroupManagement = (currentUser: Player) => {
           name: groupData.name,
           avatar: groupData.avatar,
           created_by: currentUser.id,
-          is_public: groupData.isPublic
+          is_public: groupData.isPublic,
+          city: groupData.city,        // Add this
+          state: groupData.state       // Add this
         }])
         .select()
         .single();
-
+  
       if (groupError) throw groupError;
-
+  
       const memberInserts = [
         ...groupData.members.map(member => ({
           group_id: group.id,
@@ -142,13 +155,13 @@ export const useGroupManagement = (currentUser: Player) => {
           role: 'admin'
         }
       ];
-
+  
       const { error: membersError } = await supabase
         .from('group_members')
         .insert(memberInserts);
-
+  
       if (membersError) throw membersError;
-
+  
       return group;
     } catch (error) {
       throw error;
@@ -194,33 +207,45 @@ export const useGroupManagement = (currentUser: Player) => {
     avatar?: string;
     isPublic: boolean;
     newMembers: Player[];
+    city: string;
+    state: string;
   }) => {
     try {
-      const { error: updateError } = await supabase
+      if (!updateData.name.trim()) {
+        throw new Error('O nome do grupo não pode ficar vazio');
+      }
+  
+      const { data, error: updateError } = await supabase
         .from('groups')
         .update({
-          name: updateData.name,
+          name: updateData.name.trim(),
           avatar: updateData.avatar,
-          is_public: updateData.isPublic
+          is_public: updateData.isPublic,
+          city: updateData.city,
+          state: updateData.state
         })
-        .eq('id', groupId);
-
+        .eq('id', groupId)
+        .select();
+  
       if (updateError) throw updateError;
-
+  
       if (updateData.newMembers.length > 0) {
         const memberInserts = updateData.newMembers.map(member => ({
           group_id: groupId,
           user_id: member.id,
           role: 'member'
         }));
-
+  
         const { error: insertError } = await supabase
           .from('group_members')
           .insert(memberInserts);
-
+  
         if (insertError) throw insertError;
       }
+  
+      return data;
     } catch (error) {
+      console.error('Error updating group:', error);
       throw error;
     }
   };
@@ -380,7 +405,11 @@ export const useGroupManagement = (currentUser: Player) => {
     if (term.length < 3) return [];
     
     try {
-      // Update the select to include more fields
+      // Split the search term into words
+      const searchWords = term.toLowerCase().split(' ').filter(word => word.length >= 3);
+      
+      if (searchWords.length === 0) return [];
+  
       const { data, error } = await supabase
         .from('groups')
         .select(`
@@ -390,12 +419,14 @@ export const useGroupManagement = (currentUser: Player) => {
           is_public,
           created_by,
           created_at,
+          city,
+          state,
           group_members (
             user_id,
             role
           )
         `)
-        .ilike('name', `%${term}%`)
+        .or(searchWords.map(word => `name.ilike.%${word}%`).join(','))
         .limit(5);
   
       if (error) throw error;

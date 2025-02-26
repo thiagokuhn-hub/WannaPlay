@@ -39,6 +39,8 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
     name: '',
     avatar: undefined as string | undefined,
     isPublic: false,
+    city: '',    // Add this
+    state: ''    // Add this
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,6 +60,18 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
     try {
       const resizedImage = await handleFileChangeHook(file);
       setNewGroupData({ ...newGroupData, avatar: resizedImage });
+      
+      // If we're editing, update the group immediately
+      if (editingGroup) {
+        await editGroup(editingGroup.id, {
+          ...newGroupData,
+          avatar: resizedImage,
+          isPublic: newGroupData.isPublic,
+          newMembers: selectedMembers
+        });
+        // Refresh the groups list to show the new avatar
+        loadGroups();
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erro ao processar a imagem');
     }
@@ -75,10 +89,18 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
         name: newGroupData.name,
         avatar: newGroupData.avatar,
         isPublic: newGroupData.isPublic,
-        members: selectedMembers
+        members: selectedMembers,
+        city: newGroupData.city,    // Add this
+        state: newGroupData.state   // Add this
       });
 
-      setNewGroupData({ name: '', avatar: undefined, isPublic: false });
+      setNewGroupData({ 
+        name: '', 
+        avatar: undefined, 
+        isPublic: false,
+        city: '',    // Add this
+        state: ''    // Add this
+      });
       setSelectedMembers([]);
       setShowCreateGroup(false);
       loadGroups();
@@ -96,15 +118,19 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
         name: newGroupData.name,
         avatar: newGroupData.avatar,
         isPublic: newGroupData.isPublic,
-        newMembers: selectedMembers
+        newMembers: selectedMembers,
+        city: newGroupData.city,
+        state: newGroupData.state
       });
 
+      // Close modal and reset state
       setEditingGroup(null);
       setSelectedMembers([]);
-      loadGroups();
+      // Refresh the groups list to show the updated name
+      await loadGroups();
     } catch (error) {
       console.error('Error updating group:', error);
-      alert('Erro ao atualizar grupo. Tente novamente.');
+      alert(error instanceof Error ? error.message : 'Erro ao atualizar grupo. Tente novamente.');
     }
   };
 
@@ -125,13 +151,30 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
     }
   };
 
-
+  const handleAssignAdmin = async (memberId: string) => {
+    if (!editingGroup) return;
+    
+    try {
+      if (window.confirm('Tem certeza que deseja tornar este membro um administrador?')) {
+        await assignAdmin(editingGroup.id, memberId);
+        // Refresh the group members list to show the new admin status
+        await fetchGroupMembers(editingGroup.id);
+        // Refresh the groups list
+        loadGroups();
+      }
+    } catch (error) {
+      console.error('Error assigning admin:', error);
+      alert('Erro ao tornar membro administrador. Tente novamente.');
+    }
+  };
   const handleEditGroupClick = async (group: Group) => {
     setEditingGroup(group);
     setNewGroupData({ 
       name: group.name, 
       avatar: group.avatar,
-      isPublic: group.is_public || false
+      isPublic: group.is_public || false,
+      city: group.city || '',    // Make sure city is being loaded from the group data
+      state: group.state || ''    // Make sure state is being loaded from the group data
     });
     
     await fetchGroupMembers(group.id);
@@ -150,7 +193,18 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-medium text-gray-900">Meus Grupos</h2>
         <button
-          onClick={() => setShowCreateGroup(true)}
+          onClick={() => {
+            // Reset form data before showing the modal
+            setNewGroupData({
+              name: '',
+              avatar: undefined,
+              isPublic: false,
+              city: '',
+              state: ''
+            });
+            setSelectedMembers([]);
+            setShowCreateGroup(true);
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Plus className="w-4 h-4" />
@@ -186,15 +240,22 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                     alt={group.name}
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <div className="flex items-center gap-2">
-                    <span>{group.name}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      group.is_public 
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {group.is_public ? 'Público' : 'Privado'}
-                    </span>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span>{group.name}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        group.is_public 
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {group.is_public ? 'Público' : 'Privado'}
+                      </span>
+                    </div>
+                    {group.city && group.state && (
+                      <span className="text-sm text-gray-500">
+                        {group.city}, {group.state}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button
@@ -262,9 +323,22 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                   <Camera className="w-6 h-6 text-gray-400" />
                 </div>
               )}
+              
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-gray-900">{group.name}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded ${
+                    group.is_public 
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {group.is_public ? 'Público' : 'Privado'}
+                  </span>
+                  {group.city && group.state && (
+                    <span className="text-sm text-gray-500">
+                      {group.city}, {group.state}
+                    </span>
+                  )}
                   {group.pendingCount > 0 && (
                     <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                       {group.pendingCount} pendente{group.pendingCount > 1 ? 's' : ''}
@@ -338,7 +412,31 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                 placeholder="Nome do grupo"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
-              
+
+              {/* Add Location Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  value={newGroupData.city}
+                  onChange={(e) => setNewGroupData({ ...newGroupData, city: e.target.value })}
+                  placeholder="Cidade"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  type="text"
+                  value={newGroupData.state}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase();
+                    if (value.length <= 2 && /^[A-Z]*$/.test(value)) {
+                      setNewGroupData({ ...newGroupData, state: value });
+                    }
+                  }}
+                  placeholder="UF"
+                  maxLength={2}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg uppercase"
+                />
+              </div>
+
               {/* Rest of the form content */}
               {/* Add Player Search Section */}
               <div className="space-y-2">
@@ -358,7 +456,20 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                         key={player.id}
                         className="flex items-center justify-between p-2 hover:bg-gray-50"
                       >
-                        <span>{player.name}</span>
+                        <div className="flex items-center gap-2">
+                          {player.avatar ? (
+                            <img
+                              src={player.avatar}
+                              alt=""
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                              <GiTennisBall className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                          <span>{player.name}</span>
+                        </div>
                         <button
                           onClick={() => {
                             if (!selectedMembers.find(m => m.id === player.id)) {
@@ -492,7 +603,31 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                 placeholder="Nome do grupo"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
               />
-              
+
+              {/* Add Location Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  value={newGroupData.city}
+                  onChange={(e) => setNewGroupData({ ...newGroupData, city: e.target.value })}
+                  placeholder="Cidade"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  type="text"
+                  value={newGroupData.state}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase();
+                    if (value.length <= 2 && /^[A-Z]*$/.test(value)) {
+                      setNewGroupData({ ...newGroupData, state: value });
+                    }
+                  }}
+                  placeholder="UF"
+                  maxLength={2}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg uppercase"
+                />
+              </div>
+
               {/* Rest of the form content */}
               {/* Add Player Search Section */}
               <div className="space-y-2">
@@ -512,7 +647,20 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                         key={player.id}
                         className="flex items-center justify-between p-2 hover:bg-gray-50"
                       >
-                        <span>{player.name}</span>
+                        <div className="flex items-center gap-2">
+                          {player.avatar ? (
+                            <img
+                              src={player.avatar}
+                              alt=""
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                              <GiTennisBall className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                          <span>{player.name}</span>
+                        </div>
                         <button
                           onClick={() => {
                             if (!selectedMembers.find(m => m.id === player.id)) {
@@ -691,7 +839,7 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
             </div>
       
             {/* Modal Footer */}
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => {
                   setEditingGroup(null);
@@ -700,6 +848,13 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
                 Fechar
+              </button>
+              <button
+                onClick={handleEditGroupSubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={!newGroupData.name.trim()}
+              >
+                Salvar
               </button>
             </div>
           </div>

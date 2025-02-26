@@ -188,30 +188,30 @@ export function useAuth() {
   // Add this function inside useAuth
   const updateProfile = async (data: Partial<Player>) => {
     try {
-      if (!user?.id) {
-        throw new Error('Usuário não encontrado');
-      }
-  
-      const { error } = await supabase
+      const { data: updatedProfile, error } = await supabase
         .from('profiles')
         .update({
           name: data.name,
           phone: data.phone,
           email: data.email,
-          playing_side: data.playing_side || data.playingSide,
           gender: data.gender,
-          padel_category: data.padel_category || data.padelCategory,
-          beach_tennis_category: data.beach_tennis_category || data.beachTennisCategory,
-          tennis_category: data.tennis_category || data.tennisCategory,  // Add this line
+          padel_category: data.padelCategory,
+          beach_tennis_category: data.beachTennisCategory,
+          tennis_category: data.tennisCategory,
+          preferred_sports: data.preferred_sports,
+          show_only_group_content: data.show_only_group_content, // Add this line
           avatar: data.avatar,
-          preferred_sports: data.preferredSports || data.preferred_sports || ['padel', 'beach-tennis'],
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
-  
+        .eq('id', user?.id)
+        .select()
+        .single();
+
       if (error) throw error;
-  
-      await fetchUser(user.id);
+      
+      // Update the local user state
+      setUser(updatedProfile);
+      return updatedProfile;
     } catch (error) {
       console.error('Error updating profile:', error);
       throw error;
