@@ -406,7 +406,7 @@ const handleGameClick = (game: GameProposal) => {
         const sportsMatch = availability.sports.some(sport => 
           currentUser?.preferred_sports?.includes(sport)
         );
-        if (!sportsMatch) return false;
+        if (currentUser && !sportsMatch) return false;
 
         // If user wants to see only group content
         if (currentUser?.show_only_group_content) {
@@ -424,7 +424,7 @@ const handleGameClick = (game: GameProposal) => {
           return isInGroup || false;
         }
 
-        // If not filtering by groups, show public availabilities and group availabilities
+        // Show public availabilities if no user is logged in
         if (availability.is_public) return true;
 
         // For private availabilities, check group membership

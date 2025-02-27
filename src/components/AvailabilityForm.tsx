@@ -378,20 +378,24 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
             id,
             name,
             avatar,
-            is_public
+            is_public,
+            city,
+            state
           )
         `)
         .eq('user_id', currentUser.id);
-
+  
       if (error) throw error;
-
+  
       if (groups) {
         const formattedGroups = groups.map(g => ({
           group_id: g.group_id,
           name: g.groups?.name || 'Unknown Group',
           avatar: g.groups?.avatar,
           is_public: g.groups?.is_public,
-          role: g.role // Include role in the formatted group
+          role: g.role, // Include role in the formatted group
+          city: g.groups?.city, // Add city information
+          state: g.groups?.state // Add state information
         }));
         setUserGroups(formattedGroups);
       }
@@ -449,26 +453,26 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
       }
     };
 
-    const handleSearchGroups = async (term: string) => {
-        setSearchGroupTerm(term);
-        if (term.length < 3) {
-          setSearchGroupResults([]);
-          return;
-        }
-  
-        try {
-          const { data, error } = await supabase
-            .from('groups')
-            .select('id, name, is_public, avatar') // Include avatar in the select
-            .ilike('name', `%${term}%`)
-            .limit(5);
-  
-          if (error) throw error;
-          setSearchGroupResults(data || []);
-        } catch (error) {
-          console.error('Error searching groups:', error);
-        }
-      };
+    const  handleSearchGroups = async (term: string) => {
+      setSearchGroupTerm(term);
+      if (term.length < 3) {
+        setSearchGroupResults([]);
+        return;
+      }
+    
+      try {
+        const { data, error } = await supabase
+          .from('groups')
+          .select('id, name, is_public, avatar, city, state') // Include city and state in the select
+          .ilike('name', `%${term}%`)
+          .limit(5);
+    
+        if (error) throw error;
+        setSearchGroupResults(data || []);
+      } catch (error) {
+        console.error('Error searching groups:', error);
+      }
+    };
 
   const handleGroupToggle = (group: Group) => {
     setSelectedGroups(prev => 
@@ -914,31 +918,37 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-gray-700">Resultados da Pesquisa</h4>
                 {searchGroupResults.map((group) => (
-                  <div
-                    key={group.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={group.avatar || '/default-group.png'}
-                        alt={group.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                      <span className="font-medium">{group.name}</span>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        await handleJoinGroup(group);
-                        setGroupRequestStatus(prev => ({ ...prev, [group.id]: true }));
-                      }}
-                      className={`text-blue-600 hover:text-blue-800 ${
-                        groupRequestStatus[group.id] ? 'disabled' : ''
-                      }`}
-                      disabled={groupRequestStatus[group.id]}
-                    >
-                      {group.is_public ? 'Entrar' : groupRequestStatus[group.id] ? 'Aguardando aprovação' : 'Solicitar'}
-                    </button>
-                  </div>
+  <div
+    key={group.id}
+    className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+  >
+    <div className="flex items-center gap-3">
+      <img
+        src={group.avatar || '/default-group.png'}
+        alt={group.name}
+        className="w-10 h-10 rounded-full object-cover"
+      />
+      <div>
+        <span className="font-medium">{group.name}</span>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span>{group.is_public ? 'Público' : 'Privado'}</span>
+          {group.city && <span>• {group.city}</span>}
+        </div>
+      </div>
+    </div>
+    <button
+      onClick={async () => {
+        await handleJoinGroup(group);
+        setGroupRequestStatus(prev => ({ ...prev, [group.id]: true }));
+      }}
+      className={`text-blue-600 hover:text-blue-800 ${
+        groupRequestStatus[group.id] ? 'disabled' : ''
+      }`}
+      disabled={groupRequestStatus[group.id]}
+    >
+      {group.is_public ? 'Entrar' : groupRequestStatus[group.id] ? 'Aguardando aprovação' : 'Solicitar'}
+    </button>
+  </div>
                 ))}
               </div>
             )}
@@ -946,41 +956,45 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
             <div className="space-y-4">
               {/* Rest of the existing groups list */}
               {userGroups.map((group) => (
-                <div
-                  key={group.group_id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
-                >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={group.avatar || '/default-group.png'}
-                      alt={group.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <span className="font-medium">{group.name}</span>
-                      {group.role === 'pending' && (
-                        <span className="text-xs text-yellow-600 block">
-                          Aguardando aprovação
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {group.role !== 'pending' && (
-                    <button
-                      type="button"
-                      onClick={() => handleGroupToggle(group)}
-                      className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                        selectedGroups.some(g => g.group_id === group.group_id)
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {selectedGroups.some(g => g.group_id === group.group_id)
-                        ? 'Selecionado'
-                        : 'Selecionar'}
-                    </button>
-                  )}
-                </div>
+  <div
+    key={group.group_id}
+    className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+  >
+    <div className="flex items-center gap-3">
+      <img
+        src={group.avatar || '/default-group.png'}
+        alt={group.name}
+        className="w-10 h-10 rounded-full object-cover"
+      />
+      <div>
+        <span className="font-medium">{group.name}</span>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span>{group.is_public ? 'Público' : 'Privado'}</span>
+          {group.city && <span>• {group.city}</span>}
+        </div>
+        {group.role === 'pending' && (
+          <span className="text-xs text-yellow-600 block">
+            Aguardando aprovação
+          </span>
+        )}
+      </div>
+    </div>
+    {group.role !== 'pending' && (
+      <button
+        type="button"
+        onClick={() => handleGroupToggle(group)}
+        className={`px-3 py-1 rounded-lg text-sm font-medium ${
+          selectedGroups.some(g => g.group_id === group.group_id)
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
+      >
+        {selectedGroups.some(g => g.group_id === group.group_id)
+          ? 'Selecionado'
+          : 'Selecionar'}
+      </button>
+    )}
+  </div>
               ))}
             </div>
 
