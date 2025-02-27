@@ -329,9 +329,32 @@ const handleGameClick = (game: GameProposal) => {
   };
 
   const filterGames = (games: GameProposal[]) => {
-    return games.filter(game => {
+    // First, ensure all games have a valid dateObj
+    const gamesWithValidDates = games.map(game => {
+      if (!game.dateObj) {
+        // Create a dateObj from the game.date if it doesn't exist
+        const dateObj = new Date(game.date);
+        return { ...game, dateObj };
+      }
+      return game;
+    });
+
+    // Add debug logging to see what games are being processed
+    console.log('Games before filtering:', games.length);
+    
+    return gamesWithValidDates.filter(game => {
       // First check if game is deleted
       if (game.status === 'deleted') return false;
+
+      // Debug: Log the game creator ID and current user ID
+      if (currentUser) {
+        console.log(`Game ${game.id} created by: ${game.createdBy.id}, Current user: ${currentUser.id}`);
+      }
+
+      // Always show games created by the current user
+      if (currentUser && game.createdBy.id === currentUser.id) {
+        return true;
+      }
 
       // If user has selected to see only group content and the game is public
       if (currentUser?.show_only_group_content && game.is_public) {
@@ -351,13 +374,13 @@ const handleGameClick = (game: GameProposal) => {
         if (!isInGroup) return false;
       }
 
+      // Rest of filtering logic remains the same
       const locationMatch = filters.locations.length === 0 || 
         game.locations.some(loc => filters.locations.includes(loc));
       
       const categoryMatch = filters.categories.length === 0 || 
         game.requiredCategories.some(cat => filters.categories.includes(cat));
       
-      // Use the same day matching logic as FilterPanel
       const dayMatch = filters.days.length === 0 || filters.days.includes(game.dayOfWeek);
       
       const genderMatch = filters.genders.length === 0 || 
@@ -368,7 +391,11 @@ const handleGameClick = (game: GameProposal) => {
 
       return locationMatch && categoryMatch && dayMatch && genderMatch && sportMatch;
     })
-      .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+      .sort((a, b) => {
+        if (!a.dateObj) return -1;
+        if (!b.dateObj) return 1;
+        return a.dateObj.getTime() - b.dateObj.getTime();
+      });
   };
 
   const filterAvailabilities = (availabilities: Availability[]) => {

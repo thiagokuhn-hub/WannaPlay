@@ -2,9 +2,28 @@ import React, { useState, useEffect } from 'react';  // Add useEffect to the imp
 import { Sport, Location, GameProposal, PadelCategory, BeachTennisCategory, Player, GameGender } from '../types';
 import { generateTimeOptions } from '../utils/timeUtils';
 import { toLocalISOString, normalizeDate } from '../utils/dateUtils';
-import CategoryTooltip from './tooltips/CategoryTooltip';
+import { validateTimes, formatTimeForSelect } from '../utils/formValidation';
+import CategorySelector from './game/CategorySelector';
+import LocationSelector from './game/LocationSelector';
 import LocationInfoTooltip from './tooltips/LocationInfoTooltip';
-import { supabase } from '../lib/supabase';
+import CategoryTooltip from './tooltips/CategoryTooltip';
+
+// Define Padel categories
+const padelCategories: PadelCategory[] = ['CAT 1', 'CAT 2', 'CAT 3', 'CAT 4', 'CAT 5', 'CAT 6'];
+
+// Define Beach Tennis categories
+const beachTennisCategories: BeachTennisCategory[] = [
+  'INICIANTE',
+  'CAT C',
+  'CAT B',
+  'CAT A',
+  'PROFISSIONAL'
+];
+
+// Add Tennis categories
+const tennisCategories: TennisCategory[] = [
+  '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'
+];
 
 interface GameProposalFormProps {
   onSubmit: (data: {
@@ -14,7 +33,7 @@ interface GameProposalFormProps {
     startTime: string;
     endTime: string;
     description: string;
-    requiredCategories: (PadelCategory | BeachTennisCategory)[];
+    requiredCategories: (PadelCategory | BeachTennisCategory | TennisCategory)[];
     gender: GameGender;
     maxPlayers: number; // Add this new field
   }) => void;
@@ -24,17 +43,6 @@ interface GameProposalFormProps {
   currentUser: Player | null;
   availableLocations: Location[];
 }
-
-// Add this helper function at the top of the component
-const formatTimeForSelect = (time: string) => {
-  // Convert "HH:MM:SS" to "HH:MM" format
-  return time ? time.slice(0, 5) : '';
-};
-
-// Add Tennis categories
-const tennisCategories: TennisCategory[] = [
-  '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'
-];
 
 export default function GameProposalForm({ 
   onSubmit, 
@@ -60,7 +68,7 @@ export default function GameProposalForm({
     startTime: formatTimeForSelect(initialData?.start_time || initialData?.startTime || ''),
     endTime: formatTimeForSelect(initialData?.end_time || initialData?.endTime || ''),
     description: initialData?.description || '',
-    requiredCategories: initialData?.requiredCategories || [] as (PadelCategory | BeachTennisCategory)[],
+    requiredCategories: initialData?.requiredCategories || [] as (PadelCategory | BeachTennisCategory | TennisCategory)[],
     gender: initialData?.gender || 'male' as GameGender, // Changed from 'mixed' to 'male'
     maxPlayers: initialData?.maxPlayers || 4,
   });
@@ -76,32 +84,7 @@ export default function GameProposalForm({
   }, [initialData, isEditing]);
 
   const [error, setError] = useState('');
-  const [locationStartIndex, setLocationStartIndex] = useState(0);
-
   const timeOptions = generateTimeOptions();
-
-  const padelCategories: PadelCategory[] = ['CAT 1', 'CAT 2', 'CAT 3', 'CAT 4', 'CAT 5', 'CAT 6'];
-  const beachTennisCategories: BeachTennisCategory[] = [
-    'INICIANTE',
-    'CAT C',
-    'CAT B',
-    'CAT A',
-    'PROFISSIONAL'
-  ];
-
-  // Remove these functions as they're no longer needed
-  // const showNextLocations = () => { ... }
-  // const showPreviousLocations = () => { ... }
-  // const visibleLocations = availableLocations.slice(locationStartIndex, locationStartIndex + 3);
-
-  const validateTimes = (startTime: string, endTime: string) => {
-    if (startTime && endTime && startTime >= endTime) {
-      setError('O horário de término deve ser depois do horário de início');
-      return false;
-    }
-    setError('');
-    return true;
-  };
 
   const handleLocationToggle = (locationId: string) => {
     setFormData(prev => ({
@@ -142,6 +125,7 @@ export default function GameProposalForm({
       return false;
     }
     if (!validateTimes(formData.startTime, formData.endTime)) {
+      setError('O horário de término deve ser depois do horário de início');
       return false;
     }
     return true;
@@ -167,7 +151,6 @@ export default function GameProposalForm({
     }
   };
 
-  // Add this after the gender selection and before the locations section
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
