@@ -650,7 +650,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tipo de Disponibilidade
+           Essa disponibilidade vai ser visível por:
           </label>
           <div className="flex gap-4">
             <label className="flex items-center cursor-pointer">
@@ -664,7 +664,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
                 }}
                 className="h-4 w-4 rounded-full border-gray-300 text-blue-600 focus:blue-500"
               />
-              <span className="text-sm text-gray-700 ml-2">Pública</span>
+              <span className="text-sm text-gray-700 ml-2">Todos</span>
             </label>
             <label 
               className="flex items-center cursor-pointer"
@@ -678,7 +678,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
                 className="h-4 w-4 rounded-full border-gray-300 text-blue-600 focus:blue-500"
               />
               <span className="text-sm text-gray-700 ml-2">
-                Grupos {selectedGroups.length > 0 && `(${selectedGroups.length})`}
+                Grupo(s) {selectedGroups.length > 0 && `(${selectedGroups.length})`}
               </span>
             </label>
           </div>

@@ -263,22 +263,16 @@ export default function AddPlayerDirectlyModal({
             </label>
             <CategoryTooltip />
           </div>
-          <select
+          <input
+            type="text"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             value={formData.category || ''}
             onChange={(e) => setFormData({
               ...formData,
-              category: e.target.value ? e.target.value as Category : undefined
+              category: e.target.value as Category
             })}
-          >
-            <option value="">Selecione a categoria</option>
-            <option value="CAT 1">CAT 1</option>
-            <option value="CAT 2">CAT 2</option>
-            <option value="CAT 3">CAT 3</option>
-            <option value="CAT 4">CAT 4</option>
-            <option value="CAT 5">CAT 5</option>
-            <option value="CAT 6">CAT 6</option>
-          </select>
+            placeholder="Digite a categoria do jogador"
+          />
         </div>
 
         <div>

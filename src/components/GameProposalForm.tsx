@@ -460,7 +460,7 @@ export default function GameProposalForm({
 
       <div>
   <label className="block text-sm font-medium text-gray-700 mb-2">
-    Tipo de Jogo
+    Esse jogo vai ser visível por:
   </label>
   <div className="flex gap-4">
     <label className="flex items-center cursor-pointer">
@@ -474,7 +474,7 @@ export default function GameProposalForm({
         }}
         className="h-4 w-4 rounded-full border-gray-300 text-blue-600 focus:blue-500"
       />
-      <span className="text-sm text-gray-700 ml-2">Público</span>
+      <span className="text-sm text-gray-700 ml-2">Todos</span>
     </label>
     <label 
       className="flex items-center cursor-pointer"
@@ -488,7 +488,7 @@ export default function GameProposalForm({
         className="h-4 w-4 rounded-full border-gray-300 text-blue-600 focus:blue-500"
       />
       <span className="text-sm text-gray-700 ml-2">
-        Grupos {selectedGroups.length > 0 && `(${selectedGroups.length})`}
+        Grupo(s) {selectedGroups.length > 0 && `(${selectedGroups.length})`}
       </span>
     </label>
   </div>
@@ -730,7 +730,7 @@ export default function GameProposalForm({
             rows={4}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Adicione informações importantes sobre o jogo..."
+            placeholder="(OPCIONAL)Adicione informações importantes sobre o jogo..."
           />
         </div>
       </div>

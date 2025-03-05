@@ -3,7 +3,7 @@ import { PlayingSide, PadelCategory, BeachTennisCategory, Gender, Player, GamePr
 import Modal from './modals/Modal';
 import CategoryTooltip from './tooltips/CategoryTooltip';
 import PlayerHistory from './PlayerHistory';
-import { Camera } from 'lucide-react';
+import { Camera, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { resizeImage } from '../utils/imageUtils';
 import GroupsPanel from './groups/GroupsPanel';
@@ -32,9 +32,15 @@ export default function EditProfileForm({
   onRepublishAvailability,
   locations
 }: Omit<EditProfileFormProps, 'currentUser'>) {
-  const { user: currentUser } = useAuth();
-  // Update the state to include 'groups' as a possible tab
-  const [activeTab, setActiveTab] = useState<'profile' | 'history' | 'groups'>('profile');
+  // Update this line to include deleteAccount
+  const { user: currentUser, deleteAccount } = useAuth();
+  
+  // Update the state to include 'account' as a possible tab
+  const [activeTab, setActiveTab] = useState<'profile' | 'history' | 'groups' | 'account'>('profile');
+  
+  // Add state for account deletion confirmation
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [accountDeleted, setAccountDeleted] = useState(false);
   
   // Add to state initialization
   const [formData, setFormData] = useState({
@@ -167,6 +173,37 @@ export default function EditProfileForm({
     return null;
   }
 
+  // Add function to handle account deletion
+  const handleDeleteAccount = () => {
+    setShowDeleteConfirmation(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    try {
+      // Show loading state or disable button here if needed
+      
+      // Call the deleteAccount function from useAuth
+      await deleteAccount();
+      
+      // Show success message
+      setAccountDeleted(true);
+      setShowDeleteConfirmation(false);
+      
+      // Close the modal after a short delay
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Erro ao excluir conta. Tente novamente.');
+      setShowDeleteConfirmation(false);
+    }
+  };
+
+  const cancelDeleteAccount = () => {
+    setShowDeleteConfirmation(false);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -174,7 +211,7 @@ export default function EditProfileForm({
       title="Minha Conta"
     >
       <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-6">
           <button
             onClick={() => setActiveTab('profile')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -204,6 +241,16 @@ export default function EditProfileForm({
             }`}
           >
             Grupos
+          </button>
+          <button
+            onClick={() => setActiveTab('account')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'account'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Conta
           </button>
         </nav>
       </div>
@@ -347,7 +394,7 @@ export default function EditProfileForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nome Completo
+              Nome Completo ou apelido
             </label>
             <input
               type="text"
@@ -563,6 +610,88 @@ export default function EditProfileForm({
         />
       ) : activeTab === 'groups' ? (
         <GroupsPanel currentUser={currentUser} />
+      ) : activeTab === 'account' ? (
+        <div className="space-y-6">
+          {accountDeleted ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900">Conta excluída com sucesso</h3>
+                <p className="mt-2 text-gray-600">
+                  Sua conta foi excluída permanentemente. Todos os seus dados foram removidos dos nossos servidores.
+                </p>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-4 px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="border-b border-gray-200 pb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Gerenciar Conta</h3>
+                <p className="text-gray-600 text-sm">
+                  Aqui você pode gerenciar configurações avançadas da sua conta.
+                </p>
+              </div>
+              
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <h4 className="text-lg font-medium text-red-800 mb-2">Atenção</h4>
+                <p className="text-gray-700 mb-4">
+                  Excluir sua conta é uma ação permanente e não pode ser desfeita. 
+                  Todos os seus dados serão removidos permanentemente.
+                </p>
+                
+                {showDeleteConfirmation ? (
+                  <div className="bg-white border border-red-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <AlertTriangle className="w-5 h-5 text-red-500" />
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-900">Tem certeza que deseja excluir sua conta?</h5>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Esta ação não pode ser desfeita. Todos os seus dados, incluindo jogos, disponibilidades e informações pessoais serão excluídos permanentemente.
+                        </p>
+                        <div className="mt-4 flex gap-3">
+                          <button
+                            type="button"
+                            onClick={confirmDeleteAccount}
+                            className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                          >
+                            Sim, excluir minha conta
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelDeleteAccount}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    className="px-4 py-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    Excluir minha conta
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       ) : null}
     </Modal>
   );

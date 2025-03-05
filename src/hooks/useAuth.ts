@@ -8,9 +8,11 @@ export function useAuth() {
 
   const fetchUser = async (userId: string) => {
     try {
+      // Fix the query structure - don't use select('*, is_admin')
+      // Instead, just use select('*') since is_admin should be a column in profiles
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, is_admin')
+        .select('*')
         .eq('id', userId)
         .single();
     
@@ -69,15 +71,19 @@ export function useAuth() {
 
   const signUp = async (userData: Omit<Player, 'id'>) => {
     try {
-      // First check if user already exists in profiles
-      const { data: existingProfile } = await supabase
+      // Modify the query to handle multiple rows
+      const { data: existingProfiles, error: profileError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', userData.email)
-        .single()
-        .throwOnError(); // Add this to handle errors properly
+        .eq('email', userData.email);
     
-      if (existingProfile) {
+      if (profileError) {
+        console.error('Error checking existing profiles:', profileError);
+        throw new Error('Erro ao verificar perfis existentes');
+      }
+    
+      // Check if any profiles exist with the given email
+      if (existingProfiles && existingProfiles.length > 0) {
         throw new Error('Este email já está cadastrado');
       }
     
@@ -113,7 +119,7 @@ export function useAuth() {
             gender: userData.gender || 'other',
             padel_category: userData.padelCategory || null,
             beach_tennis_category: userData.beachTennisCategory || null,
-            tennis_category: userData.tennisCategory || null,  // Add this line
+            tennis_category: userData.tennisCategory || null,
             avatar: userData.avatar || null,
             cep: userData.cep || '',
             preferred_sports: userData.preferredSports || ['padel', 'beach-tennis'],
@@ -297,7 +303,62 @@ export function useAuth() {
     }
   };
 
-  // Add signInWithGoogle to the returned object
+  // Add the deleteAccount function BEFORE the return statement
+  // Improve the deleteAccount function
+  const deleteAccount = async () => {
+    try {
+      if (!user) {
+        throw new Error('Usuário não encontrado');
+      }
+  
+      console.log('Attempting to delete user profile with ID:', user.id);
+  
+      // First, get the current session to ensure we have the auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Sessão não encontrada. Faça login novamente.');
+      }
+
+      // Delete the user's profile from the profiles table with explicit auth
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+        throw profileError;
+      }
+
+      console.log('Profile deleted successfully');
+
+      // Try to delete the user from auth (this might require admin rights)
+      try {
+        // This is a client-side approach - might not work without admin rights
+        const { error: authError } = await supabase.rpc('delete_user');
+        if (authError) {
+          console.warn('Could not delete auth user (might require admin rights):', authError);
+        }
+      } catch (authDeleteError) {
+        console.warn('Auth deletion failed (expected if not admin):', authDeleteError);
+      }
+
+      // Then sign out the user
+      const { error: signOutError } = await supabase.auth.signOut();
+      if (signOutError) throw signOutError;
+
+      // Clear the local user state
+      setUser(null);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      throw error;
+    }
+  };
+
+  // Add deleteAccount to the returned object
   return {
     user,
     loading,
@@ -305,6 +366,7 @@ export function useAuth() {
     signUp,
     signOut,
     updateProfile,
-    signInWithGoogle // Add this
+    signInWithGoogle,
+    deleteAccount // Add this to the return object
   };
 }

@@ -119,7 +119,7 @@ const GameCard: React.FC<GameCardProps> = ({
             category: player.category || null,
             playing_side: player.playingSide || null,
             created_by: currentUser?.id,
-            join_message: `Added manually by ${currentUser?.name || 'game creator'}`
+            join_message: `Adicionado por ${currentUser?.name || 'game creator'}`
           }])
           .select()
           .single();
