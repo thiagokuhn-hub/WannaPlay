@@ -725,10 +725,10 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
             <button
               type="button"
               onClick={() => setShowTimeSlotModal(true)}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm border border-blue-100"
             >
               <Plus className="w-4 h-4" />
-              Adicionar Horário
+              <span className="font-medium">Adicionar Horário</span>
             </button>
           </div>
 
@@ -798,79 +798,102 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
       {/* Move modals outside the form */}
       {showTimeSlotModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Adicionar Horário</h3>
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Adicionar Horário</h3>
+              <button
+                type="button"
+                onClick={() => setShowTimeSlotModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Dia da Semana
                 </label>
-                <select
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={currentSlot.day}
-                  onChange={(e) => setCurrentSlot({
-                    ...currentSlot,
-                    day: e.target.value as WeekDay
-                  })}
-                >
+                <div className="grid grid-cols-7 gap-1">
                   {Object.entries(weekDayLabels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setCurrentSlot({
+                        ...currentSlot,
+                        day: value as WeekDay
+                      })}
+                      className={`
+                        py-2 px-1 rounded-lg text-sm font-medium transition-all
+                        ${currentSlot.day === value
+                          ? 'bg-blue-600 text-white shadow-md scale-95'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                        }
+                      `}
+                    >
+                      {label.slice(0, 3)}
+                    </button>
                   ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Início
-                  </label>
-                  <select
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={currentSlot.startTime}
-                    onChange={(e) => setCurrentSlot({
-                      ...currentSlot,
-                      startTime: e.target.value
-                    })}
-                  >
-                    <option value="">Selecione</option>
-                    {generateTimeOptions().map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Término
-                  </label>
-                  <select
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={currentSlot.endTime}
-                    onChange={(e) => setCurrentSlot({
-                      ...currentSlot,
-                      endTime: e.target.value
-                    })}
-                  >
-                    <option value="">Selecione</option>
-                    {generateTimeOptions().map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
-                    ))}
-                  </select>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Horário
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <select
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                        value={currentSlot.startTime}
+                        onChange={(e) => setCurrentSlot({
+                          ...currentSlot,
+                          startTime: e.target.value
+                        })}
+                      >
+                        <option value="">Início</option>
+                        {generateTimeOptions().map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <select
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                        value={currentSlot.endTime}
+                        onChange={(e) => setCurrentSlot({
+                          ...currentSlot,
+                          endTime: e.target.value
+                        })}
+                      >
+                        <option value="">Término</option>
+                        {generateTimeOptions().map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setShowTimeSlotModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium"
                 >
                   Cancelar
                 </button>
@@ -878,7 +901,7 @@ export default function AvailabilityForm({ onSubmit, onClose, currentUser, initi
                   type="button"
                   onClick={addTimeSlot}
                   disabled={!currentSlot.startTime || !currentSlot.endTime}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   Adicionar
                 </button>
