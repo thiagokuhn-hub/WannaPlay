@@ -22,6 +22,13 @@ export function useGames() {
               joined_at,
               is_temporary,
               join_message
+            ),
+            game_groups(
+              groups(
+                id,
+                name,
+                group_members(user_id)
+              )
             )
           `)
           .order('created_at', { ascending: false });

@@ -330,81 +330,32 @@ const handleGameClick = (game: GameProposal) => {
 
   const filterGames = (games: GameProposal[]) => {
     if (!games) return [];
-  
+
     return games.filter(game => {
-      // Check if game and its properties exist
+      // Check if game exists and is not deleted
       if (!game || game.status === 'deleted') return false;
   
-      // Check if the game is public
+      // If game is public, show it
       if (game.is_public) return true;
   
-      // If the game is private, check if the current user is involved
-      if (currentUser) {
-        const isCreator = game.createdBy?.id === currentUser.id;
-        const isPlayer = game.players?.some(player => player?.id === currentUser.id);
-        return isCreator || isPlayer;
-      }
+      // If no current user, don't show private games
+      if (!currentUser) return false;
   
-      return false;
+      // Show if user is the creator
+      if (game.createdBy?.id === currentUser.id) return true;
+  
+      // Show if user is a player
+      if (game.players?.some(player => player?.id === currentUser.id)) return true;
+  
+      // Check if user is in any of the game's groups
+      const isInGameGroups = game.game_groups?.some(gameGroup => 
+        gameGroup.groups?.group_members?.some(member => 
+          member.user_id === currentUser.id
+        )
+      );
+  
+      return isInGameGroups;
     });
-
-    // Add debug logging to see what games are being processed
-    console.log('Games before filtering:', games.length);
-    
-    return gamesWithValidDates.filter(game => {
-      // First check if game is deleted
-      if (game.status === 'deleted') return false;
-
-      // Debug: Log the game creator ID and current user ID
-      if (currentUser) {
-        console.log(`Game ${game.id} created by: ${game.createdBy.id}, Current user: ${currentUser.id}`);
-      }
-
-      // Always show games created by the current user
-      if (currentUser && game.createdBy.id === currentUser.id) {
-        return true;
-      }
-
-      // If user has selected to see only group content and the game is public
-      if (currentUser?.show_only_group_content && game.is_public) {
-        return false;
-      }
-
-      // If game is not public, check if user is in the game's groups
-      if (!game.is_public) {
-        if (!currentUser) return false;
-        
-        const isInGroup = game.game_groups?.some(gg => 
-          gg.groups.group_members?.some(member => 
-            member.user_id === currentUser.id
-          )
-        );
-        
-        if (!isInGroup) return false;
-      }
-
-      // Rest of filtering logic remains the same
-      const locationMatch = filters.locations.length === 0 || 
-        game.locations.some(loc => filters.locations.includes(loc));
-      
-      const categoryMatch = filters.categories.length === 0 || 
-        game.requiredCategories.some(cat => filters.categories.includes(cat));
-      
-      const dayMatch = filters.days.length === 0 || filters.days.includes(game.dayOfWeek);
-      
-      const genderMatch = filters.genders.length === 0 || 
-        filters.genders.includes(game.gender);
-      
-      const sportMatch = filters.sports.length === 0 || 
-        filters.sports.includes(game.sport);
-
-      return locationMatch && categoryMatch && dayMatch && genderMatch && sportMatch;
-    })
-      .sort((a, b) => {
-        if (!a.dateObj) return -1;
-        if (!b.dateObj) return 1;
-        return a.dateObj.getTime() - b.dateObj.getTime();
-      });
   };
 
   const filterAvailabilities = (availabilities: Availability[]) => {
