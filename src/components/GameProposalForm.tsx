@@ -633,81 +633,106 @@ export default function GameProposalForm({
         </div>
       </div>
 
+      <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Data e Horário
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <input
+                    type="date"
+                    required
+                    min={toLocalISOString(new Date())}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors hover:bg-gray-100"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                </div>
+    
+                <div className="relative">
+                  <select
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-colors hover:bg-gray-100"
+                    value={formData.startTime}
+                    onChange={(e) => {
+                      const newTime = e.target.value;
+                      if (validateTimes(newTime, formData.endTime)) {
+                        setFormData({ ...formData, startTime: newTime });
+                      }
+                    }}
+                  >
+                    <option value="">Início</option>
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+    
+                <div className="relative">
+                  <select
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-colors hover:bg-gray-100"
+                    value={formData.endTime}
+                    onChange={(e) => {
+                      const newTime = e.target.value;
+                      if (validateTimes(formData.startTime, newTime)) {
+                        setFormData({ ...formData, endTime: newTime });
+                      }
+                    }}
+                  >
+                    <option value="">Término</option>
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Data
-        </label>
-        <input
-          type="date"
-          required
-          min={toLocalISOString(new Date())}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          value={formData.date}
-          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Horário de Início
+        <div className="flex items-center gap-2 mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Informações Adicionais
           </label>
-          <select
-            required
+          <textarea
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={formData.startTime}
-            onChange={(e) => {
-              const newTime = e.target.value;
-              if (validateTimes(newTime, formData.endTime)) {
-                setFormData({ ...formData, startTime: newTime });
-              }
-            }}
-          >
-            <option value="">Selecione o horário</option>
-            {timeOptions.map((time) => (
-              <option key={time} value={time}>
-                {time}
-              </option>
-            ))}
-          </select>
+            rows={4}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Adicione informações importantes sobre o jogo..."
+          />
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Horário de Término
-          </label>
-          <select
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={formData.endTime}
-            onChange={(e) => {
-              const newTime = e.target.value;
-              if (validateTimes(formData.startTime, newTime)) {
-                setFormData({ ...formData, endTime: newTime });
-              }
-            }}
-          >
-            <option value="">Selecione o horário</option>
-            {timeOptions.map((time) => (
-              <option key={time} value={time}>
-                {time}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Informações Adicionais
-        </label>
-        <textarea
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          rows={4}
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Adicione informações importantes sobre o jogo..."
-        />
       </div>
 
       {showGroupModal && (
