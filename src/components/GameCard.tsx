@@ -196,7 +196,9 @@ const GameCard: React.FC<GameCardProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="text-sm font-medium text-gray-900">
-                  {game.sport === 'padel' ? 'Padel' : 'Beach Tennis'}
+                  {game.sport === 'padel' ? 'Padel' : 
+                   game.sport === 'beach-tennis' ? 'Beach Tennis' : 
+                   'Tênis'}
                 </h3>
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(game.status)}`}>
                   {getStatusText(game.status)}
@@ -240,27 +242,29 @@ const GameCard: React.FC<GameCardProps> = ({
               <div className="flex -space-x-2">
                 {game.players.map((player, index) => (
                   <div
-                    key={player.id}
+                    key={`${player.id}-${player.isTemporary ? 'temp' : 'perm'}-${index}`}
                     className="relative"
                     style={{ zIndex: game.players.length - index }}
                   >
-                    {player.avatar ? (
-                      <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-white">
-                        <img
-                          src={player.avatar}
-                          alt={`Avatar de ${player.name}`}
-                          className="w-full h-full object-cover"
+                    <div className="group relative">
+                      {player.avatar ? (
+                        <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-white">
+                          <img
+                            src={player.avatar}
+                            alt={`Avatar de ${player.name}`}
+                            className="w-full h-full object-cover"
+                            title={player.name}
+                          />
+                        </div>
+                      ) : (
+                        <div 
+                          className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center border-2 border-white"
                           title={player.name}
-                        />
-                      </div>
-                    ) : (
-                      <div 
-                        className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center border-2 border-white"
-                        title={player.name}
-                      >
-                        <GiTennisBall className="w-3.5 h-3.5 text-blue-600" />
-                      </div>
-                    )}
+                        >
+                          <GiTennisBall className="w-3.5 h-3.5 text-blue-600" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

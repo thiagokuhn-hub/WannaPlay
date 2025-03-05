@@ -49,28 +49,36 @@ export default function GameDetails({
     return gender === 'male' ? 'Masculino' : 'Feminino';
   };
 
+  // In the getPlayerCategories function - Update to handle both permanent and temporary players
   const getPlayerCategories = (player: Player) => {
     const categories = [];
-    
-    // For regular players (including game creator)
-    if (player.padel_category) {
-      categories.push(`Padel: ${player.padel_category}`);
+    const playingSide = getPlayingSideLabel(player.playing_side);
+  
+    // Ensure category is shown for the current game's sport
+    if (game.sport === 'tennis' && player.tennis_category) {
+      categories.push(`Tênis: ${player.tennis_category}${playingSide ? ` (${playingSide})` : ''}`);
     }
-    if (player.beach_tennis_category) {
-      categories.push(`Beach Tennis: ${player.beach_tennis_category}`);
+    else if (game.sport === 'beach-tennis' && player.beach_tennis_category) {
+      categories.push(`Beach Tennis: ${player.beach_tennis_category}${playingSide ? ` (${playingSide})` : ''}`);
     }
-    
-    // For temporary players
-    if (player.category) {
-      categories.push(game.sport === 'padel' ? `Padel: ${player.category}` : `Beach Tennis: ${player.category}`);
+    else if (game.sport === 'padel' && player.padel_category) {
+      categories.push(`Padel: ${player.padel_category}${playingSide ? ` (${playingSide})` : ''}`);
     }
-    
+  
+    // Fallback for incomplete player data
+    if (!categories.length && player.category) {
+      const sport = game.sport === 'padel' ? 'Padel' : 
+                   game.sport === 'beach-tennis' ? 'Beach Tennis' : 
+                   'Tênis';
+      categories.push(`${sport}: ${player.category}${playingSide ? ` (${playingSide})` : ''}`);
+    }
+  
     return categories;
   };
 
+  // Update getPlayingSideLabel to handle database values
   const getPlayingSideLabel = (side: string | undefined) => {
     if (!side) return null;
-    // Use the side parameter directly
     return side === 'both' ? 'Ambos os lados' : 
            side === 'left' ? 'Lado Esquerdo' : 
            side === 'right' ? 'Lado Direito' : null;
@@ -124,7 +132,9 @@ export default function GameDetails({
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <h3 className="text-xl font-semibold">
-                      {game.sport === 'padel' ? 'Padel' : 'Beach Tennis'}
+                      {game.sport === 'padel' ? 'Padel' : 
+                       game.sport === 'beach-tennis' ? 'Beach Tennis' : 
+                       'Tênis'}
                     </h3>
                     <span className={`px-2 py-1 rounded-full text-sm font-medium ${
                       game.status === 'open'
@@ -198,7 +208,9 @@ export default function GameDetails({
                             </div>
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <GiTennisBall className="w-6 h-6 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-600">
+                                {player.category?.split(' ')[1]}  {/* Show category number */}
+                              </span>
                             </div>
                           )}
                           <div>
@@ -210,9 +222,11 @@ export default function GameDetails({
                               {player.gender && (
                                 <span className="block">{getGenderLabel(player.gender)}</span>
                               )}
-                              {(player.playing_side || player.playingSide) && (
+                              
+                              {/* Remove this block: */}
+                              {/* {(player.playing_side || player.playingSide) && (
                                 <span className="block">{getPlayingSideLabel(player.playing_side || player.playingSide)}</span>
-                              )}
+                              )} */}
                             </div>
                           </div>
                         </div>

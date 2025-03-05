@@ -186,6 +186,7 @@ export function useAuth() {
   }
 
   // Add this function inside useAuth
+  // Update the updateProfile function to handle the camelCase to snake_case conversion
   const updateProfile = async (data: Partial<Player>) => {
     try {
       const { data: updatedProfile, error } = await supabase
@@ -195,18 +196,19 @@ export function useAuth() {
           phone: data.phone,
           email: data.email,
           gender: data.gender,
-          padel_category: data.padelCategory,
-          beach_tennis_category: data.beachTennisCategory,
-          tennis_category: data.tennisCategory,
+          padel_category: data.padel_category || data.padelCategory,
+          beach_tennis_category: data.beach_tennis_category || data.beachTennisCategory,
+          tennis_category: data.tennis_category || data.tennisCategory,
+          playing_side: data.playing_side || data.playingSide,
           preferred_sports: data.preferred_sports,
-          show_only_group_content: data.show_only_group_content, // Add this line
+          show_only_group_content: data.show_only_group_content,
           avatar: data.avatar,
           updated_at: new Date().toISOString()
         })
         .eq('id', user?.id)
         .select()
         .single();
-
+  
       if (error) throw error;
       
       // Update the local user state

@@ -242,41 +242,6 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: gamesData, error: gamesError } = await supabase
-          .from('games')
-          .select(`
-            *,
-            created_by:profiles!games_created_by_fkey(*),
-            game_players(
-              player:profiles(*),
-              joined_at,
-              is_temporary,
-              join_message
-            )
-          `)
-          .order('created_at', { ascending: false });
-
-        if (gamesError) throw gamesError;
-
-        const formattedGames = gamesData.map(game => ({
-          ...game,
-          players: game.game_players?.map(gp => ({
-            id: gp.player.id,
-            name: gp.player.name,
-            ...gp.player,
-            joinMessage: gp.join_message,
-            isTemporary: gp.is_temporary
-          })) || [],
-          createdBy: game.created_by,
-          startTime: game.start_time,
-          endTime: game.end_time,
-          requiredCategories: game.required_categories,
-          locationIds: game.locations,
-          maxPlayers: game.max_players
-        }));
-
-        setGames(formattedGames);
-
         const { data: availData, error: availError } = await supabase
           .from('availabilities')
           .select(`

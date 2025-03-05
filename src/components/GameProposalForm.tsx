@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';  // Add useEffect to the imports
-import { Sport, Location, GameProposal, PadelCategory, BeachTennisCategory, Player, GameGender } from '../types';
+import { 
+  Sport, 
+  Location, 
+  GameProposal, 
+  PadelCategory, 
+  BeachTennisCategory, 
+  Player, 
+  GameGender, 
+  TennisCategory, 
+} from '../types';
 import { generateTimeOptions } from '../utils/timeUtils';
 import { toLocalISOString, normalizeDate } from '../utils/dateUtils';
 import { validateTimes, formatTimeForSelect } from '../utils/formValidation';
@@ -7,11 +16,10 @@ import CategorySelector from './game/CategorySelector';
 import LocationSelector from './game/LocationSelector';
 import LocationInfoTooltip from './tooltips/LocationInfoTooltip';
 import CategoryTooltip from './tooltips/CategoryTooltip';
+import { X, Search } from 'lucide-react';  // Add this import
+import { supabase } from '../lib/supabase';
 
-// Define Padel categories
 const padelCategories: PadelCategory[] = ['CAT 1', 'CAT 2', 'CAT 3', 'CAT 4', 'CAT 5', 'CAT 6'];
-
-// Define Beach Tennis categories
 const beachTennisCategories: BeachTennisCategory[] = [
   'INICIANTE',
   'CAT C',
@@ -19,8 +27,6 @@ const beachTennisCategories: BeachTennisCategory[] = [
   'CAT A',
   'PROFISSIONAL'
 ];
-
-// Add Tennis categories
 const tennisCategories: TennisCategory[] = [
   '1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5', '6.0', '6.5', '7.0'
 ];
@@ -35,7 +41,9 @@ interface GameProposalFormProps {
     description: string;
     requiredCategories: (PadelCategory | BeachTennisCategory | TennisCategory)[];
     gender: GameGender;
-    maxPlayers: number; // Add this new field
+    maxPlayers: number;
+    is_public: boolean;  // Add this field
+    groups?: string[];   // Add this field
   }) => void;
   onClose: () => void;
   initialData?: Partial<GameProposal>;
@@ -61,6 +69,7 @@ export default function GameProposalForm({
     end_time: initialData?.end_time
   });
 
+  // Move all state declarations to the top
   const [formData, setFormData] = useState({
     sport: initialData?.sport || 'padel' as Sport,
     locations: initialData?.locations || [] as string[],
@@ -69,9 +78,67 @@ export default function GameProposalForm({
     endTime: formatTimeForSelect(initialData?.end_time || initialData?.endTime || ''),
     description: initialData?.description || '',
     requiredCategories: initialData?.requiredCategories || [] as (PadelCategory | BeachTennisCategory | TennisCategory)[],
-    gender: initialData?.gender || 'male' as GameGender, // Changed from 'mixed' to 'male'
+    gender: initialData?.gender || 'male' as GameGender,
     maxPlayers: initialData?.maxPlayers || 4,
   });
+
+  // Add these state declarations before any function that uses them
+  const [isPublic, setIsPublic] = useState(true);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [userGroups, setUserGroups] = useState<Group[]>([]);
+  const [searchGroupTerm, setSearchGroupTerm] = useState('');
+  const [searchGroupResults, setSearchGroupResults] = useState<any[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<Group[]>([]);
+  const [groupRequestStatus, setGroupRequestStatus] = useState<{ [key: string]: boolean }>({});
+  const [error, setError] = useState('');
+  const timeOptions = generateTimeOptions();
+
+  // Add useEffect to fetch game groups when editing
+  useEffect(() => {
+    const fetchGameGroups = async () => {
+      if (isEditing && initialData?.id) {
+        try {
+          // Fetch game groups
+          const { data: gameGroups, error: groupsError } = await supabase
+            .from('game_groups')
+            .select(`
+              group_id,
+              groups (
+                id,
+                name,
+                avatar,
+                is_public,
+                city,
+                state
+              )
+            `)
+            .eq('game_id', initialData.id);
+
+          if (groupsError) throw groupsError;
+
+          if (gameGroups && gameGroups.length > 0) {
+            const formattedGroups = gameGroups.map(gg => ({
+              group_id: gg.groups?.id,
+              name: gg.groups?.name || 'Unknown Group',
+              avatar: gg.groups?.avatar,
+              is_public: gg.groups?.is_public,
+              city: gg.groups?.city,
+              state: gg.groups?.state
+            }));
+            
+            setSelectedGroups(formattedGroups);
+            setIsPublic(false); // If there are groups, the game is private
+          } else {
+            setIsPublic(initialData.is_public ?? true);
+          }
+        } catch (error) {
+          console.error('Error fetching game groups:', error);
+        }
+      }
+    };
+
+    fetchGameGroups();
+  }, [isEditing, initialData]);
 
   useEffect(() => {
     if (initialData && isEditing) {
@@ -82,9 +149,6 @@ export default function GameProposalForm({
       }));
     }
   }, [initialData, isEditing]);
-
-  const [error, setError] = useState('');
-  const timeOptions = generateTimeOptions();
 
   const handleLocationToggle = (locationId: string) => {
     setFormData(prev => ({
@@ -115,6 +179,135 @@ export default function GameProposalForm({
     setError('');
   };
 
+
+  const handleGroupModalOpen = () => {
+    if (!currentUser) {
+      setIsPublic(true);
+      return;
+    }
+  
+    setIsPublic(false);
+    setShowGroupModal(true);
+    fetchUserGroups();
+  };
+  
+  const handleCloseGroupModal = () => {
+    if (selectedGroups.length === 0) {
+      setIsPublic(true);
+    }
+    setShowGroupModal(false);
+  };
+  
+  const fetchUserGroups = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const { data: groups, error } = await supabase
+        .from('group_members')
+        .select(`
+          group_id,
+          role,
+          groups (
+            id,
+            name,
+            avatar,
+            is_public,
+            city,
+            state
+          )
+        `)
+        .eq('user_id', currentUser.id);
+  
+      if (error) throw error;
+  
+      if (groups) {
+        const formattedGroups = groups.map(g => ({
+          group_id: g.group_id,
+          name: g.groups?.name || 'Unknown Group',
+          avatar: g.groups?.avatar,
+          is_public: g.groups?.is_public,
+          role: g.role,
+          city: g.groups?.city,
+          state: g.groups?.state
+        }));
+        setUserGroups(formattedGroups);
+      }
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+    }
+  };
+  
+  const handleJoinGroup = async (group: any) => {
+    try {
+      if (group.is_public) {
+        const formattedGroup = {
+          group_id: group.id,
+          name: group.name,
+          avatar: group.avatar
+        };
+        
+        if (currentUser) {
+          await supabase
+            .from('group_members')
+            .insert({
+              user_id: currentUser.id,
+              group_id: group.id,
+              role: 'member'
+            });
+          
+          await fetchUserGroups();
+          handleGroupToggle(formattedGroup);
+          setIsPublic(false);
+        }
+      } else {
+        const { error } = await supabase
+          .from('group_members')
+          .insert({
+            user_id: currentUser.id,
+            group_id: group.id,
+            role: 'pending'
+          });
+        
+        if (error) throw error;
+        
+        setGroupRequestStatus(prev => ({ ...prev, [group.id]: true }));
+        alert('Uma solicitação de aprovação foi enviada para o administrador do grupo.');
+      }
+    } catch (error) {
+      console.error('Error joining group:', error);
+      alert('Erro ao solicitar entrada no grupo. Tente novamente.');
+    }
+  };
+  
+  const handleSearchGroups = async (term: string) => {
+    setSearchGroupTerm(term);
+    if (term.length < 3) {
+      setSearchGroupResults([]);
+      return;
+    }
+  
+    try {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('id, name, is_public, avatar, city, state')
+        .ilike('name', `%${term}%`)
+        .limit(5);
+  
+      if (error) throw error;
+      setSearchGroupResults(data || []);
+    } catch (error) {
+      console.error('Error searching groups:', error);
+    }
+  };
+  
+  const handleGroupToggle = (group: Group) => {
+    setSelectedGroups(prev => 
+      prev.some(g => g.group_id === group.group_id)
+        ? prev.filter(g => g.group_id !== group.group_id)
+        : [...prev, group]
+    );
+  };
+
   const validateForm = () => {
     if (formData.locations.length === 0) {
       setError('Selecione pelo menos uma localização');
@@ -133,23 +326,107 @@ export default function GameProposalForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+      
     if (!validateForm()) {
       return;
     }
 
     try {
-      // Normalize the date before submitting
       const normalizedDate = normalizeDate(formData.date);
-      onSubmit({
-        ...formData,
-        date: normalizedDate
-      });
-    } catch (error) {
-      console.error('Error in form submission:', error);
-      setError('Erro ao criar o jogo. Tente novamente.');
+      const gameData = {
+        sport: formData.sport,
+        date: normalizedDate,
+        start_time: formData.startTime,
+        end_time: formData.endTime,
+        description: formData.description,
+        gender: formData.gender,
+        max_players: formData.maxPlayers,
+        required_categories: formData.requiredCategories,
+        location_id: formData.locations.length > 0 ? formData.locations[0] : null,
+        locations: formData.locations,
+        is_public: isPublic,
+      };
+
+      let gameId;
+      
+      if (isEditing && initialData?.id) {
+        // Update existing game
+        const { error: updateError } = await supabase
+          .from('games')
+          .update({
+            ...gameData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', initialData.id);
+      
+      if (updateError) throw updateError;
+      gameId = initialData.id;
+    } else {
+      // Create new game
+      const { data: newGame, error: insertError } = await supabase
+        .from('games')
+        .insert({
+          ...gameData,
+          created_by: currentUser?.id
+        })
+        .select()
+        .single();
+      
+      if (insertError) throw insertError;
+      gameId = newGame.id;
+
+      if (currentUser) {
+        await supabase
+          .from('game_players')
+          .insert({
+            game_id: gameId,
+            player_id: currentUser.id,
+            joined_at: new Date().toISOString(),
+            is_temporary: false
+          });
+      }
     }
-  };
+    
+    // Handle group associations
+    if (gameId) {
+      // Remove existing group associations if switching to public
+      if (isPublic) {
+        await supabase
+          .from('game_groups')
+          .delete()
+          .eq('game_id', gameId);
+        setSelectedGroups([]); // Clear selected groups when game is public
+      } else if (selectedGroups.length > 0) {
+        const groupAssociations = selectedGroups.map(group => ({
+          game_id: gameId,
+          group_id: group.group_id
+        }));
+    
+        const { error: groupError } = await supabase
+          .from('game_groups')
+          .insert(groupAssociations);
+    
+        if (groupError) throw groupError;
+      }
+    }
+    
+    onSubmit({
+      ...formData,
+      date: normalizedDate,
+      is_public: isPublic,
+    });
+  } catch (error) {
+    console.error('Error in form submission:', error);
+    setError('Erro ao criar o jogo. Tente novamente.');
+  }
+};
+
+  useEffect(() => {
+    if (!isPublic && selectedGroups.length === 0) {
+      setIsPublic(true);
+    }
+  }, [selectedGroups, isPublic]);
+  
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -180,6 +457,44 @@ export default function GameProposalForm({
           ))}
         </div>
       </div>
+
+      <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Tipo de Jogo
+  </label>
+  <div className="flex gap-4">
+    <label className="flex items-center cursor-pointer">
+      <input
+        type="radio"
+        name="visibility"
+        checked={isPublic}
+        onChange={() => {
+          setIsPublic(true);
+          setShowGroupModal(false);
+        }}
+        className="h-4 w-4 rounded-full border-gray-300 text-blue-600 focus:blue-500"
+      />
+      <span className="text-sm text-gray-700 ml-2">Público</span>
+    </label>
+    <label 
+      className="flex items-center cursor-pointer"
+      onClick={handleGroupModalOpen}
+    >
+      <input
+        type="radio"
+        name="visibility"
+        checked={!isPublic}
+        onChange={() => {}}
+        className="h-4 w-4 rounded-full border-gray-300 text-blue-600 focus:blue-500"
+      />
+      <span className="text-sm text-gray-700 ml-2">
+        Grupos {selectedGroups.length > 0 && `(${selectedGroups.length})`}
+      </span>
+    </label>
+  </div>
+</div>
+
+
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -394,6 +709,126 @@ export default function GameProposalForm({
           placeholder="Adicione informações importantes sobre o jogo..."
         />
       </div>
+
+      {showGroupModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Selecionar Grupos</h3>
+        <button
+          onClick={handleCloseGroupModal}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      <div className="relative">
+        <input
+          type="text"
+          value={searchGroupTerm}
+          onChange={(e) => handleSearchGroups(e.target.value)}
+          placeholder="Pesquisar grupos..."
+          className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg"
+        />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+      </div>
+
+      {searchGroupResults.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-gray-700">Resultados da Pesquisa</h4>
+          {searchGroupResults.map((group) => (
+            <div
+              key={group.id}
+              className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+            >
+              <div className="flex items-center gap-3">
+                <img
+                  src={group.avatar || '/default-group.png'}
+                  alt={group.name}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div>
+                  <span className="font-medium">{group.name}</span>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <span>{group.is_public ? 'Público' : 'Privado'}</span>
+                    {group.city && <span>• {group.city}</span>}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  await handleJoinGroup(group);
+                  setGroupRequestStatus(prev => ({ ...prev, [group.id]: true }));
+                }}
+                className={`text-blue-600 hover:text-blue-800 ${
+                  groupRequestStatus[group.id] ? 'disabled' : ''
+                }`}
+                disabled={groupRequestStatus[group.id]}
+              >
+                {group.is_public ? 'Entrar' : groupRequestStatus[group.id] ? 'Aguardando aprovação' : 'Solicitar'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {userGroups.map((group) => (
+          <div
+            key={group.group_id}
+            className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+          >
+            <div className="flex items-center gap-3">
+              <img
+                src={group.avatar || '/default-group.png'}
+                alt={group.name}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              <div>
+                <span className="font-medium">{group.name}</span>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span>{group.is_public ? 'Público' : 'Privado'}</span>
+                  {group.city && <span>• {group.city}</span>}
+                </div>
+                {group.role === 'pending' && (
+                  <span className="text-xs text-yellow-600 block">
+                    Aguardando aprovação
+                  </span>
+                )}
+              </div>
+            </div>
+            {group.role !== 'pending' && (
+              <button
+                type="button"
+                onClick={() => handleGroupToggle(group)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                  selectedGroups.some(g => g.group_id === group.group_id)
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {selectedGroups.some(g => g.group_id === group.group_id)
+                  ? 'Selecionado'
+                  : 'Selecionar'}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={handleCloseGroupModal}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Concluir
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       <div className="flex justify-end space-x-3">
         <button

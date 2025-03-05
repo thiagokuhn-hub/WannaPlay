@@ -131,19 +131,34 @@ export default function EditProfileForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSportSelectionError(false);
-
+  
     // Validate sports selection
     if (formData.preferredSports.length === 0) {
       setSportSelectionError(true);
       return;
     }
-
+  
+    // Use both camelCase and snake_case to ensure compatibility
     const updatedData: Partial<Player> = {
-      ...formData,
+      name: formData.name,
+      phone: formData.phone,
+      email: formData.email,
+      // Include both formats to ensure one works
+      padel_category: formData.padelCategory || null,
+      padelCategory: formData.padelCategory || null,
+      beach_tennis_category: formData.beachTennisCategory || null,
+      beachTennisCategory: formData.beachTennisCategory || null,
+      tennis_category: formData.tennisCategory || null,
+      tennisCategory: formData.tennisCategory || null,
+      playing_side: formData.playingSide,
+      playingSide: formData.playingSide,
+      gender: formData.gender,
+      avatar: formData.avatar,
       preferred_sports: formData.preferredSports,
-      show_only_group_content: formData.showOnlyGroupContent, // Add this line
+      show_only_group_content: formData.showOnlyGroupContent,
       ...(formData.password ? { password: formData.password } : {})
     };
+  
     onSubmit(updatedData);
   };
 
@@ -382,10 +397,54 @@ export default function EditProfileForm({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Gênero
-            </label>
+          <div className="space-y-6">
+            {/* Add this new section for playing side preference */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Lado preferencial
+              </label>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="playingSide"
+                    value="both"
+                    checked={formData.playingSide === 'both'}
+                    onChange={(e) => setFormData({ ...formData, playingSide: e.target.value as PlayingSide })}
+                    className="w-4 h-4 text-blue-600 border-gray-300"
+                  />
+                  <span className="text-gray-700">Ambos</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="playingSide"
+                    value="left"
+                    checked={formData.playingSide === 'left'}
+                    onChange={(e) => setFormData({ ...formData, playingSide: e.target.value as PlayingSide })}
+                    className="w-4 h-4 text-blue-600 border-gray-300"
+                  />
+                  <span className="text-gray-700">Esquerdo</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="playingSide"
+                    value="right"
+                    checked={formData.playingSide === 'right'}
+                    onChange={(e) => setFormData({ ...formData, playingSide: e.target.value as PlayingSide })}
+                    className="w-4 h-4 text-blue-600 border-gray-300"
+                  />
+                  <span className="text-gray-700">Direito</span>
+                </label>
+              </div>
+            </div>
+          
+            {/* Existing gender selection section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Gênero
+              </label>
             <select
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -474,8 +533,7 @@ export default function EditProfileForm({
             </div>
           )}
 
-          
-          
+          </div> {/* Add this closing div for the space-y-6 container */}
 
           <div className="flex justify-end space-x-3">
             <button

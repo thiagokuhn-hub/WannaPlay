@@ -329,14 +329,23 @@ const handleGameClick = (game: GameProposal) => {
   };
 
   const filterGames = (games: GameProposal[]) => {
-    // First, ensure all games have a valid dateObj
-    const gamesWithValidDates = games.map(game => {
-      if (!game.dateObj) {
-        // Create a dateObj from the game.date if it doesn't exist
-        const dateObj = new Date(game.date);
-        return { ...game, dateObj };
+    if (!games) return [];
+  
+    return games.filter(game => {
+      // Check if game and its properties exist
+      if (!game || game.status === 'deleted') return false;
+  
+      // Check if the game is public
+      if (game.is_public) return true;
+  
+      // If the game is private, check if the current user is involved
+      if (currentUser) {
+        const isCreator = game.createdBy?.id === currentUser.id;
+        const isPlayer = game.players?.some(player => player?.id === currentUser.id);
+        return isCreator || isPlayer;
       }
-      return game;
+  
+      return false;
     });
 
     // Add debug logging to see what games are being processed
