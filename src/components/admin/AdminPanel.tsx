@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, Edit, Plus, MapPin, Phone, CheckCircle, XCircle, Ban, UserX } from 'lucide-react';
 import { Location, GameProposal, Availability, Player } from '../../types';
 import LocationForm from './LocationForm';
 import Modal from '../modals/Modal';
 import { formatDistance } from '../../utils/locationUtils';
 import UsersList from './UsersList';
+import { supabase } from '../../lib/supabase'; // Import supabase client
 
 interface AdminPanelProps {
   locations: Location[];
@@ -41,24 +42,24 @@ export default function AdminPanel({
     name: string;
   } | null>(null);
   const [locationFilter, setLocationFilter] = useState('');
+  const [users, setUsers] = useState<Player[]>([]); // State to store all users
 
-  // Get unique users from games and availabilities
-  const getUsers = () => {
-    const usersMap = new Map<string, Player>();
-    
-    games.forEach(game => {
-      usersMap.set(game.createdBy.id, game.createdBy);
-      game.players.forEach(player => {
-        usersMap.set(player.id, player);
-      });
-    });
-    
-    availabilities.forEach(availability => {
-      usersMap.set(availability.player.id, availability.player);
-    });
-    
-    return Array.from(usersMap.values());
-  };
+  // Fetch all users from the profiles table
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching users:', error);
+      } else {
+        setUsers(data || []);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   // Filter out deleted items
   const activeGames = games.filter(game => game.status !== 'deleted');
@@ -133,7 +134,7 @@ export default function AdminPanel({
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Usuários ({getUsers().length})
+            Usuários ({users.length})
           </button>
         </nav>
       </div>
@@ -313,7 +314,7 @@ export default function AdminPanel({
 
       {activeTab === 'users' && (
         <UsersList
-          users={getUsers()}
+          users={users} // Use the fetched users
           onBlockUser={onBlockUser}
           onUnblockUser={onUnblockUser}
         />
