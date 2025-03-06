@@ -267,7 +267,7 @@ export function useAuth() {
           .from('profiles')
           .upsert({
             id: session.user.id,
-            avatar: avatarUrl,
+            avatar: avatarUrl, // Ensure avatar is saved
             name: googleData.full_name || googleData.name,
             email: session.user.email,
             updated_at: new Date().toISOString(),

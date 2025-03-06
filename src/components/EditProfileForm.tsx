@@ -94,11 +94,11 @@ export default function EditProfileForm({
 
   // Add helper functions here, before handleFileChange
   const shouldShowPadelCategory = () => {
-    return formData.preferredSports.includes('padel') || formData.preferredSports.length === 2;
+    return formData.preferredSports.includes('padel');
   };
 
   const shouldShowBeachTennisCategory = () => {
-    return formData.preferredSports.includes('beach-tennis') || formData.preferredSports.length === 2;
+    return formData.preferredSports.includes('beach-tennis');
   };
 
   const shouldShowTennisCategory = () => {

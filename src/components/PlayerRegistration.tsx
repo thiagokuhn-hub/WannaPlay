@@ -57,11 +57,11 @@ export default function PlayerRegistration({ isOpen, onClose, onSwitchToLogin }:
 
   // Define the helper functions inside the component
   const shouldShowPadelCategory = () => {
-    return formData.preferredSports.includes('padel') || formData.preferredSports.length === 2;
+    return formData.preferredSports.includes('padel');
   };
 
   const shouldShowBeachTennisCategory = () => {
-    return formData.preferredSports.includes('beach-tennis') || formData.preferredSports.length === 2;
+    return formData.preferredSports.includes('beach-tennis');
   };
 
   const shouldShowTennisCategory = () => {
