@@ -4,6 +4,8 @@ import Modal from './modals/Modal';
 import CategoryTooltip from './tooltips/CategoryTooltip';
 import { supabase } from '../lib/supabase';  // Add this import
 import { Search } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface AddPlayerDirectlyModalProps {
   isOpen: boolean;
@@ -81,40 +83,82 @@ export default function AddPlayerDirectlyModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+  
     try {
       if (selectedPlayerId) {
-        // Add player to game
-        const { data: gamePlayer, error: gamePlayerError } = await supabase
-          .from('game_players')
-          .insert([{
-            game_id: gameId,
-            player_id: selectedPlayerId,
-            is_temporary: false
-          }])
-          .select()
+        // Check if the selected player is a registered user
+        const { data: existingPlayer, error: playerError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', selectedPlayerId)
           .single();
-    
-        if (gamePlayerError) throw gamePlayerError;
-    
-        // Send notification using RPC function instead of direct insert
-        // Send notification using RPC function with all required fields
-        const { error: notificationError } = await supabase
-          .rpc('create_notification', {
-            p_user_id: selectedPlayerId,
-            p_type: 'game_joined',
-            p_game_id: gameId,
-            p_title: 'Novo Jogo',  // Adding required title field
-            p_message: `${currentUser?.name} adicionou você a um jogo.`
+  
+        if (playerError) throw playerError;
+  
+        if (existingPlayer) {
+          // Add registered user to the game_players table
+          const { error: gamePlayerError } = await supabase
+            .from('game_players')
+            .insert([{
+              game_id: gameId,
+              player_id: selectedPlayerId,
+              is_temporary: false
+            }]);
+  
+          if (gamePlayerError) throw gamePlayerError;
+  
+          // Fetch game details for the notification
+          const { data: gameDetails, error: gameError } = await supabase
+            .from('games')
+            .select('*, locations(*)')
+            .eq('id', gameId)
+            .single();
+  
+          if (gameError) throw gameError;
+  
+          // Format the game details for the notification
+          const date = gameDetails.date ? format(parseISO(gameDetails.date), "EEEE, d 'de' MMMM", { locale: ptBR }) : '';
+          const time = `${gameDetails.start_time || ''} - ${gameDetails.end_time || ''}`;
+          const location = gameDetails.locations?.name || '';
+          const sportName = gameDetails.sport.charAt(0).toUpperCase() + gameDetails.sport.slice(1);
+  
+          const message = `${currentUser?.name} adicionou você a um jogo de ${sportName} para ${date} às ${time} em ${location}.`;
+  
+          // Create a notification for the added player
+          const { error: notificationError } = await supabase
+            .rpc('create_notification', {
+              p_user_id: selectedPlayerId,
+              p_type: 'game_joined',
+              p_game_id: gameId,
+              p_title: 'Novo Jogo',
+              p_message: message
+            });
+  
+          if (notificationError) throw notificationError;
+        } else {
+          // Add temporary player to the game_temporary_players table
+          const { data: tempPlayer, error: tempPlayerError } = await supabase
+            .from('game_temporary_players')
+            .insert([{
+              name: formData.name,
+              phone: formData.phone || null,
+              gender: formData.gender || null,
+              category: formData.category || null,
+              playing_side: formData.playingSide || null,
+              created_by: currentUser?.id || null,
+              game_id: gameId
+            }])
+            .select()
+            .single();
+  
+          if (tempPlayerError) throw tempPlayerError;
+  
+          onSubmit({
+            ...formData,
+            id: tempPlayer.id,
+            isTemporary: true
           });
-    
-        if (notificationError) throw notificationError;
-    
-        onSubmit({
-          ...formData,
-          id: selectedPlayerId,
-          isTemporary: false
-        });
+        }
       } else {
         // Handle temporary player creation as before
         const { data: tempPlayer, error: tempPlayerError } = await supabase
@@ -140,8 +184,11 @@ export default function AddPlayerDirectlyModal({
         });
       }
 
+      // Move these INSIDE the try block but OUTSIDE conditionals
+      // REPLACE the onSubmit call with this state update
       setFormData(initialFormState);
       onClose();
+      window.location.reload();  // Add this line to force page refresh
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       alert('Erro ao adicionar jogador. Tente novamente.');

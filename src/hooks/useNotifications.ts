@@ -28,19 +28,14 @@ export function useNotifications() {
 
   const handleClearAllNotifications = async (userId: string) => {
     try {
-      // Update all notifications to be hidden instead of just marking as read
       const { error } = await supabase
         .from('notifications')
-        .update({ hidden: true })
-        .eq('user_id', userId)
-        .eq('hidden', false);
-
+        .delete()
+        .eq('user_id', userId);
+    
       if (error) throw error;
-
-      // Update local state to remove hidden notifications
-      setNotifications(prev =>
-        prev.filter(notification => !notification.hidden)
-      );
+    
+      setNotifications([]);
     } catch (error) {
       console.error('Error clearing notifications:', error);
     }
@@ -49,12 +44,24 @@ export function useNotifications() {
   // Modify the fetch notifications function to only get non-hidden ones
   const fetchNotifications = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // First, check if the hidden column exists
+      const { data: columnInfo, error: columnError } = await supabase
+        .from('notifications')
+        .select('hidden')
+        .limit(1);
+      
+      let query = supabase
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
-        .eq('hidden', false)
         .order('created_at', { ascending: false });
+      
+      // Only filter by hidden if the column exists
+      if (columnInfo && columnInfo.length > 0 && 'hidden' in columnInfo[0]) {
+        query = query.eq('hidden', false);
+      }
+      
+      const { data, error } = await query;
 
       if (error) throw error;
       if (data) setNotifications(data);

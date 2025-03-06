@@ -61,6 +61,7 @@ export const checkLocationsProximity = (
   };
 };
 
+// Update the createAvailabilityMatchNotification function
 export const createAvailabilityMatchNotification = (
   matchedAvailability: Availability,
   userId: string,
@@ -74,16 +75,57 @@ export const createAvailabilityMatchNotification = (
     : `nos mesmos horários, porém em local diferente (${otherLocation})`;
 
   return {
-    id: crypto.randomUUID(), // Use UUID instead of timestamp
+    id: crypto.randomUUID(),
     user_id: userId,
     type: 'game_match',
     title: 'Disponibilidade compatível encontrada!',
     message: `${matchedAvailability.player.name} tem disponibilidade para jogar ${
       matchedAvailability.sports.map(sport => sport === 'padel' ? 'Padel' : 'Beach Tennis').join(' ou ')
     } ${locationMessage}.`,
-    created_at: new Date().toISOString(), // Ensure proper ISO format
-    read: false
+    created_at: new Date().toISOString(),
+    read: false,
+    hidden: false,
+    availability_id: matchedAvailability.id
   };
+};
+
+// Updated createGameMatchNotification function with all the needed fields
+export const createGameMatchNotification = (
+  game: GameProposal,
+  userId: string
+): Notification => {
+  try {
+    const date = game.date ? parseISO(game.date) : new Date();
+    
+    const formattedDate = format(date, "EEEE, d 'de' MMMM 'de' yyyy", {
+      locale: ptBR
+    });
+
+    return {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      type: 'game_match',
+      title: 'Novo Jogo',
+      message: `${game.createdBy.name} adicionou você a um jogo para ${formattedDate}.`,
+      created_at: new Date().toISOString(),
+      read: false,
+      hidden: false,
+      game_id: game.id
+    };
+  } catch (error) {
+    console.error('Error creating game notification:', error);
+    return {
+      id: crypto.randomUUID(),
+      user_id: userId,
+      type: 'game_match',
+      title: 'Novo Jogo',
+      message: `${game.createdBy.name} adicionou você a um jogo.`,
+      created_at: new Date().toISOString(),
+      read: false,
+      hidden: false,
+      game_id: game.id
+    };
+  }
 };
 
 export const checkAvailabilityMatch = (
@@ -202,44 +244,45 @@ export const checkAvailabilitiesMatch = (
   return { timeMatch: true, locationMatch };
 };
 
-export const createGameMatchNotification = (
-  game: GameProposal,
-  userId: string
-): Notification => {
-  try {
-    // Add error handling for date parsing
-    const date = game.date ? parseISO(game.date) : new Date();
-    
-    // Format the date using date-fns with Portuguese locale
-    const formattedDate = format(date, "EEEE, d 'de' MMMM 'de' yyyy", {
-      locale: ptBR
-    });
-
-    return {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      type: 'game_match',
-      title: 'Novo Jogo',
-      message: `${game.createdBy.name} adicionou você a um jogo para ${formattedDate}.`,
-      created_at: new Date().toISOString(),
-      read: false,
-      game_id: game.id
-    };
-  } catch (error) {
-    console.error('Error creating game notification:', error);
-    // Fallback message without date if there's an error
-    return {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      type: 'game_match',
-      title: 'Novo Jogo',
-      message: `${game.createdBy.name} adicionou você a um jogo.`,
-      created_at: new Date().toISOString(),
-      read: false,
-      game_id: game.id
-    };
-  }
-};
+// Remove this duplicate function
+// export const createGameMatchNotification = (
+//   game: GameProposal,
+//   userId: string
+// ): Notification => {
+//   try {
+//     // Add error handling for date parsing
+//     const date = game.date ? parseISO(game.date) : new Date();
+//     
+//     // Format the date using date-fns with Portuguese locale
+//     const formattedDate = format(date, "EEEE, d 'de' MMMM 'de' yyyy", {
+//       locale: ptBR
+//     });
+//
+//     return {
+//       id: crypto.randomUUID(),
+//       user_id: userId,
+//       type: 'game_match',
+//       title: 'Novo Jogo',
+//       message: `${game.createdBy.name} adicionou você a um jogo para ${formattedDate}.`,
+//       created_at: new Date().toISOString(),
+//       read: false,
+//       game_id: game.id
+//     };
+//   } catch (error) {
+//     console.error('Error creating game notification:', error);
+//     // Fallback message without date if there's an error
+//     return {
+//       id: crypto.randomUUID(),
+//       user_id: userId,
+//       type: 'game_match',
+//       title: 'Novo Jogo',
+//       message: `${game.createdBy.name} adicionou você a um jogo.`,
+//       created_at: new Date().toISOString(),
+//       read: false,
+//       game_id: game.id
+//     };
+//   }
+// };
 
 const getDayFromDate = (date: Date): string => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];

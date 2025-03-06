@@ -107,20 +107,22 @@ function App() {
                 otherLocation
               );
             
+              // In the checkForMatches function
               const { data: savedNotification, error } = await supabase
                 .from('notifications')
                 .insert([{
-                  user_id: notification.userId,
-                  type: 'game_match',
+                  user_id: notification.user_id, // Use user_id instead of userId
+                  type: notification.type,
                   message: notification.message,
                   title: notification.title,
                   read: false,
-                  created_at: new Date().toISOString(), // Make sure this is in ISO format
+                  hidden: false,
+                  created_at: new Date().toISOString(),
                   availability_id: otherAvail.id
                 }])
                 .select()
                 .single();
-            
+              
               if (error) {
                 console.error('Error saving notification:', error);
               } else {

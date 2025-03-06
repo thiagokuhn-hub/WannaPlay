@@ -4,7 +4,9 @@ export interface Notification {
   type: string;
   title: string;
   message: string;
-  created_at: string; // This should match the database field name
+  created_at: string;
   read: boolean;
+  hidden?: boolean;
   game_id?: string;
+  availability_id?: string;
 }

@@ -6,18 +6,26 @@ useEffect(() => {
     .on(
       'postgres_changes',
       {
-        event: 'INSERT',
+        event: '*',  // Listen for all events
         schema: 'public',
         table: 'notifications',
         filter: `user_id=eq.${user.id}`
       },
       (payload) => {
-        // Ensure created_at is properly formatted
-        const notification = {
-          ...payload.new,
-          created_at: payload.new.created_at || new Date().toISOString()
-        };
-        setNotifications(prev => [...prev, notification]);
+        // Handle deletions
+        if (payload.eventType === 'DELETE') {
+          setNotifications(prev => 
+            prev.filter(n => n.id !== payload.old.id)
+          );
+        }
+        // Handle inserts
+        else if (payload.eventType === 'INSERT') {
+          const notification = {
+            ...payload.new,
+            created_at: payload.new.created_at || new Date().toISOString()
+          };
+          setNotifications(prev => [...prev, notification]);
+        }
       }
     )
     .subscribe();
@@ -26,3 +34,9 @@ useEffect(() => {
     subscription.unsubscribe();
   };
 }, [user]);
+// In your clear button click handler:
+const handleClear = () => {
+  if (user) {
+    handleClearAllNotifications(user.id);
+  }
+};

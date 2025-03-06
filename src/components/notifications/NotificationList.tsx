@@ -18,9 +18,13 @@ export default function NotificationList({
   onClose,
   onNotificationClick,
 }: NotificationListProps) {
-  const handleNotificationClick = (notification: Notification) => {
-    onMarkAsRead(notification.id);
-    onNotificationClick?.(notification);
+  const handleNotificationClick = async (notification: Notification) => {
+    try {
+      await onMarkAsRead(notification.id);
+      onNotificationClick?.(notification);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
   return (
