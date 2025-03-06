@@ -1,43 +1,51 @@
-# QueroJogar
+# QueroJogar - Sports Matchmaking Platform 🎾🏐
 
-A web application to help padel, and beach tennis players find matches and partners to play with.
+A Brazilian sports community platform connecting players for Padel, Beach Tennis, and Tennis matches.
 
-## Overview
+## Features ✨
+- **User Authentication** 🔐
+  - Email/password & Google OAuth
+  - Profile management with avatar upload
+  - Account deletion functionality
+- **Match Organization** 🗓️
+  - Game proposal system
+  - Availability sharing with time slots
+  - Real-time notifications
+- **Player Discovery** 🔍
+  - Location-based filtering (CEP)
+  - Skill level matching
+  - Preferred sports categories
+- **Admin Tools** 👨💻
+  - User management
+  - Location approvals
+  - Content moderation
+- **Social Features** 🤝
+  - Player groups
+  - Game history tracking
+  - Social sharing capabilities
 
-QueroJogar is a platform that allows players to:
-- Propose games and find players
-- Share their availability for playing
-- Join existing games
-- Filter games and players by location, sport type, and skill level
+## Tech Stack 💻
+- **Frontend**: React 18 + TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: React Hooks
+- **Authentication**: Supabase Auth
+- **Database**: Supabase PostgreSQL
+- **Deployment**: Cloudflare Pages
+- **Utilities**: Date-fns, Lucide Icons
 
-## Features Implemented
+## Project Structure 🗂️
 
-- ✅ User authentication and profile management
-- ✅ Game proposal system
-- ✅ Availability sharing
-- ✅ Location-based filtering
-- ✅ Real-time notifications
-- ✅ Interactive tutorial for new users
-- ✅ Admin panel for location management
-- ✅ Mobile-responsive design
-
-## Tech Stack
-
-- Frontend: React with TypeScript
-- Styling: Tailwind CSS
-- Backend: Supabase
-- Deployment: Cloudflare Pages
-
-## Project Structure
-
-```plaintext
-src/
-├── components/      # React components
-├── hooks/          # Custom React hooks
-├── types/          # TypeScript type definitions
-├── utils/          # Utility functions
-└── lib/            # Third-party integrations
-```
+QueroJogar
+├── public/            # Static assets
+├── src/
+│   ├── components/    # React components
+│   ├── hooks/         # Custom hooks (useAuth, useAvailabilities)
+│   ├── lib/           # Supabase client configuration
+│   ├── types/         # TypeScript definitions
+│   ├── utils/         # Helper functions
+│   └── App.tsx        # Main application entry
+├── supabase/          # Database migrations
+└── .env.example       # Environment configuration
 
 ## Recent Updates
 - Added interactive tutorial system
