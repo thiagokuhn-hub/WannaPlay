@@ -562,7 +562,7 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                 <X className="w-6 h-6" />
               </button>
             </div>
-      
+
             {/* Group Details Form */}
             <div className="space-y-4">
               {/* Group Image Upload */}
@@ -578,22 +578,25 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                     <Camera className="w-8 h-8 text-gray-400" />
                   </div>
                 )}
-                <div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg"
-                  >
-                    Alterar foto
-                  </button>
-                </div>
+                {(editingGroup.created_by === currentUser.id || 
+                  groupMembers.find(m => m.id === currentUser.id)?.role === 'admin') && (
+                  <div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg"
+                    >
+                      Alterar foto
+                    </button>
+                  </div>
+                )}
               </div>
 
               <input
@@ -677,7 +680,7 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                     ))}
                   </div>
                 )}
-      
+
                 {/* Selected Members */}
                 {selectedMembers.length > 0 && (
                   <div className="space-y-2 mt-2">
@@ -701,7 +704,7 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                   </div>
                 )}
               </div>
-      
+
               {/* Public/Private Toggle */}
               <div className="flex items-center gap-2">
                 <input
@@ -761,7 +764,7 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                 </div>
               </div>
             )}
-      
+
             {/* Group Members Section */}
             <div className="space-y-4">
               <h4 className="text-sm font-medium text-gray-700">Membros do Grupo</h4>
@@ -837,7 +840,7 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
                   ))}
               </div>
             </div>
-      
+
             {/* Modal Footer */}
             <div className="flex justify-end gap-3">
               <button
@@ -849,13 +852,16 @@ export default function GroupsPanel({ currentUser }: GroupsPanelProps) {
               >
                 Fechar
               </button>
-              <button
-                onClick={handleEditGroupSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                disabled={!newGroupData.name.trim()}
-              >
-                Salvar
-              </button>
+              {(editingGroup.created_by === currentUser.id || 
+                groupMembers.find(m => m.id === currentUser.id)?.role === 'admin') && (
+                <button
+                  onClick={handleEditGroupSubmit}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={!newGroupData.name.trim()}
+                >
+                  Salvar
+                </button>
+              )}
             </div>
           </div>
         </div>
